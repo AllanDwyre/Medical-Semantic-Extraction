@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Analyse Sémantique Médicale</title>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+	<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+	<style>
+		body {
+			font-family: 'Inter', sans-serif;
+			margin: 40px auto;
+			max-width: 900px;
+			padding: 0 20px;
+			background-color: #f9f9f9;
+			color: #333;
+		}
+
+		h1 {
+			font-size: 32px;
+			font-weight: 600;
+			margin-bottom: 10px;
+		}
+
+		h2 {
+			font-size: 20px;
+			font-weight: 600;
+			margin-top: 30px;
+			margin-bottom: 10px;
+		}
+
+		.navbar {
+			padding: 20px 0;
+			border-bottom: 1px solid #ddd;
+			margin-bottom: 30px;
+		}
+
+		.navbar a {
+			font-size: 20px;
+			text-decoration: none;
+			color: #222;
+			font-weight: 600;
+		}
+
+		.card {
+			background-color: #fff;
+			border: 1px solid #ddd;
+			border-radius: 10px;
+			padding: 20px;
+			margin-bottom: 20px;
+		}
+
+		.search-results {
+			max-height: 400px;
+			overflow-y: auto;
+			margin-top: 10px;
+		}
+
+		.result-item {
+			cursor: pointer;
+			padding: 10px;
+			border-bottom: 1px solid #eee;
+			transition: background-color 0.2s;
+		}
+
+		.result-item:hover {
+			background-color: #f0f0f0;
+		}
+
+		.result-item a {
+			color: black;
+			text-decoration: none;
+		}
+
+		.result-item a:visited,
+		.result-item a:hover,
+		.result-item a:active {
+			color: black;
+		}
+
+		input[type="text"] {
+			width: 100%;
+			padding: 10px 12px;
+			border: 1px solid #ddd;
+			border-radius: 8px;
+			font-size: 14px;
+			background-color: white;
+		}
+
+		.badge {
+			display: inline-block;
+			background-color: #eee;
+			color: #333;
+			padding: 3px 8px;
+			margin: 2px;
+			border-radius: 6px;
+			font-size: 12px;
+		}
+
+		table {
+			width: 100%;
+			border-collapse: collapse;
+		}
+
+		th,
+		td {
+			padding: 12px;
+			border-bottom: 1px solid #eee;
+			text-align: left;
+		}
+
+		a.button {
+			padding: 6px 12px;
+			border-radius: 8px;
+			background-color: black;
+			color: white;
+			text-decoration: none;
+			font-size: 14px;
+			transition: background 0.2s;
+		}
+
+		a.button:hover {
+			background-color: #333;
+		}
+
+		.small {
+			font-size: 0.85rem;
+			color: #666;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="card">
+		<h1>Analyse Sémantique Médicale</h1>
+		<p>Cette application présente l'analyse sémantique de pages Wikipédia médicales.</p>
+	</div>
+
+	<div class="card">
+		<h2>Recherche</h2>
+		<input type="text" id="search-input" placeholder="Rechercher un mot-clé ou titre...">
+		<div id="search-results" class="search-results"></div>
+	</div>
+
+	<div class="card">
+		<h2>Pages analysées</h2>
+		<table>
+			<thead>
+				<tr>
+					<th>ID</th>
+					<th>Titre</th>
+					<th>Action</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for page in pages %}
+
+				<tr>
+					<a href="/page/{{ page['id'] }}"></a>
+					<td>{{ page['id'] }}</td>
+					<td>{{ page['title'] }}</td>
+					<td><a href="/page/{{ page['id'] }}" class="button">Voir</a></td>
+					</a>
+				</tr>
+
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+	<script src="{{ url_for('static', filename='search.js') }}"></script>
+
+</body>
+
+</html>

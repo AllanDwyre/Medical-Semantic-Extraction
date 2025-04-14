@@ -1,0 +1,15 @@
+*.db
+*.json
+
+# Environnements virtuels
+.venv/
+venv/
+
+# VSCode
+.vscode/
+
+# Checkpoints Jupyter
+.ipynb_checkpoints/
+
+# __pycache__
+__pycache__/

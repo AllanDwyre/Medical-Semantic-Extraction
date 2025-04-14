@@ -1,0 +1,22 @@
+#utils
+tqdm
+termcolor
+
+# Web scraping
+requests
+beautifulsoup4
+wikipedia-api
+
+# JDM
+requests_cache
+
+# Web interface
+flask
+
+# Traitement de texte
+nltk
+spacy
+scikit-learn
+
+# Base de données / data
+pandas

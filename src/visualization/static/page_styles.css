@@ -1,0 +1,265 @@
+body {
+	font-family: 'Inter', sans-serif;
+	margin: 40px auto;
+	max-width: 1200px;
+	padding: 0 20px;
+	background-color: #f9f9f9;
+	color: #333;
+}
+
+h1 {
+	font-size: 32px;
+	font-weight: 600;
+	margin-bottom: 10px;
+}
+
+h2 {
+	font-size: 20px;
+	font-weight: 600;
+	margin-top: 30px;
+	margin-bottom: 10px;
+}
+
+a:link {
+	text-decoration: none;
+}
+
+a:visited {
+	text-decoration: none;
+}
+
+
+/* STRUCTURE */
+.container {
+	display: flex;
+	gap: 30px;
+	flex-wrap: wrap;
+}
+
+.main-content {
+	flex: 3;
+	min-width: 0;
+}
+
+.sidebar {
+	flex: 1;
+	min-width: 250px;
+}
+
+.card {
+	background-color: #fafafa;
+	border: 1px solid #ddd;
+	border-radius: 10px;
+	padding: 10px 16px;
+	margin-bottom: 20px;
+}
+
+/* TEXT CONTENT */
+p {
+	white-space: pre-wrap;
+	line-height: 1.6;
+	margin-bottom: 1.2em;
+}
+
+li {
+	line-height: 1.6;
+	letter-spacing: 0.03em;
+	margin-left: 2rem;
+}
+
+pre {
+	background-color: #fff;
+	border: 1px solid #ddd;
+	padding: 12px;
+	border-radius: 8px;
+	white-space: pre-wrap;
+	margin-top: 10px;
+}
+
+/* BADGE */
+.badge {
+	display: inline-block;
+	background-color: #eee;
+	color: #333;
+	padding: 3px 8px;
+	margin: 2px;
+	border-radius: 6px;
+	font-size: 12px;
+}
+
+/* MOTS-CLÉS HIGHLIGHT */
+.highlight {
+	cursor: pointer;
+	background-color: #e0b3ff;
+	padding: 2px 5px;
+	border-radius: 2px;
+	transition: background-color 0.2s;
+}
+
+.highlight[data-selected="0"]:hover {
+	background-color: #d493ff;
+}
+
+.highlight[data-selected="1"] {
+	background-color: #66ff99 !important;
+}
+
+.keyword-item {
+	cursor: pointer;
+	padding: 6px;
+	border-bottom: 1px solid #eee;
+}
+
+.keyword-item:hover {
+	background-color: #f0f0f0;
+}
+
+/* Relations */
+.relation-tooltip {
+	position: relative;
+	cursor: help;
+}
+
+.relation-underline {
+	border-bottom: 2px solid #cedffd;
+	padding-bottom: 1px;
+	transition: border-color 0.3s;
+}
+
+.relation-tooltip:hover .relation-underline {
+	border-color: #3367d6;
+}
+
+.relation-tooltip .tooltip {
+	display: none;
+	position: absolute;
+	bottom: 110%;
+	left: 0;
+	z-index: 10;
+	background-color: #ffffff;
+	border: 1px solid #ccc;
+	padding: 8px;
+	font-size: 0.85rem;
+	line-height: 1.4;
+	box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
+	white-space: nowrap;
+	border-radius: 6px;
+	min-width: 200px;
+}
+
+.relation-tooltip:hover .tooltip {
+	display: block;
+}
+
+/* PAGES SIMILAIRES */
+.similar-list {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.similar-item {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 8px 10px;
+	border-radius: 6px;
+	text-decoration: none;
+	color: inherit;
+	transition: background-color 0.3s;
+}
+
+.similar-item:hover {
+	background-color: #f3f3f3;
+}
+
+.similar-title {
+	font-weight: 500;
+	font-size: 14px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 70%;
+}
+
+.similar-item .badge {
+	font-size: 12px;
+	background-color: #eee;
+	color: #444;
+	padding: 2px 6px;
+	border-radius: 5px;
+}
+
+/* TOP BAR: NAVIGATION + SEARCH */
+.topbar {
+	display: flex;
+	align-items: center;
+	margin-bottom: 30px;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.nav-links a {
+	display: inline-block;
+	text-decoration: none;
+	font-size: 18px;
+	color: #444;
+	background-color: #fafafa;
+	border: 1px solid #ccc;
+	padding: 6px 12px;
+	border-radius: 8px;
+	transition: background-color 0.2s, box-shadow 0.2s;
+	cursor: pointer;
+}
+
+.nav-links a:hover {
+	background-color: #ddd;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.searchbar-inline input[type="text"] {
+	padding: 10px 14px;
+	border: 1px solid #ccc;
+	border-radius: 8px;
+	font-size: 15px;
+	background-color: #fafafa;
+	color: #333;
+	width: 350px;
+	transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.searchbar-inline input[type="text"]:focus {
+	outline: none;
+	border-color: #999;
+	box-shadow: 0 0 0 2px rgba(160, 160, 160, 0.1);
+}
+
+/* Search Result items */
+
+.search-results {
+	max-height: 400px;
+	overflow-y: auto;
+	margin-top: 10px;
+}
+
+.result-item {
+	cursor: pointer;
+	padding: 10px;
+	border-bottom: 1px solid #eee;
+	transition: background-color 0.2s;
+}
+
+.result-item:hover {
+	background-color: #f0f0f0;
+}
+
+.result-item a {
+	color: black;
+	text-decoration: none;
+}
+
+.result-item a:visited,
+.result-item a:hover,
+.result-item a:active {
+	color: black;
+}

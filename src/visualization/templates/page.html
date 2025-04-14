@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>{{ page['title'] }} - Analyse Sémantique</title>
+	<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+	<link rel="stylesheet" href="{{ url_for('static', filename='page_styles.css') }}">
+	<!-- Police Inter -->
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+	<!-- Icônes Material Symbols Outlined -->
+	<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+</head>
+
+<body data-current-index="{{ page['id'] }}">
+
+	<div class="topbar">
+		<div class="nav-links">
+			<a href="{{ url_for('index') }}" title="Page précédente"><span class="material-symbols-outlined">
+					home
+				</span></a>
+			{% if page['id'] > 0 %}
+			<a href="{{ url_for('page', page_id=page['id'] - 1) }}" title="Page précédente"><span
+					style="transform: rotate(180deg);" class="material-symbols-outlined">
+					chevron_right
+				</span></a>
+			{% endif %}
+			{% if page['id'] + 1 < total_pages %} <a href="{{ url_for('page', page_id=page['id'] + 1) }}"
+				title="Page suivante"><span class="material-symbols-outlined">
+					chevron_right
+				</span></a>
+				{% endif %}
+		</div>
+		<form class="searchbar-inline" method="get" action="/search">
+			<input type="text" name="q" placeholder="Rechercher une page ou un mot-clé...">
+		</form>
+	</div>
+	<div id="search-results" class="search-results"></div>
+
+
+	<div class="container">
+		<div class="main-content">
+			<h1>{{ page['title'] }} <a target="_blank" href="{{page['url']}}">🔗</a></h1>
+
+			{% if infobox %}
+			<h2>Infobox</h2>
+			<div class="card">
+				<ul style="padding-left: 20px;">
+					{% for key, value in infobox.items() %}
+					{% if value %}
+					<li><strong>{{ key|highlight_infobox_key(relations)|safe }}:</strong> {{
+						value|highlight_keywords(keywords)|safe }}</li>
+					{% else %}
+					<h3 style="margin-top: 1em;">{{ key }}</h3>
+					{% endif %}
+					{% endfor %}
+				</ul>
+			</div>
+			{% endif %}
+
+			<h2>Contenu</h2>
+			<div id="content-container">
+				<p>{{ page['content']|highlight_keywords(keywords)|safe }}</p>
+			</div>
+		</div>
+
+		<div class="sidebar">
+			<div class="card">
+				<h2>Mots-clés identifiés <span class="badge">{{ keywords|length }}</span></h2>
+				<div>
+					{% for kw in keywords %}
+					<div class="keyword-item" data-keyword="{{ kw['keyword'] }}">
+						{{ kw['keyword'] }}
+						<span class="badge">{{ "%.3f"|format(kw['importance_score']) }}</span>
+					</div>
+					{% endfor %}
+				</div>
+			</div>
+			{% if similar_pages %}
+			<div class="card">
+				<h2>Pages similaires</h2>
+				<div class="similar-list">
+					{% for similar in similar_pages %}
+					<a href="{{ url_for('page', page_id=similar['id']) }}" class="similar-item">
+						<span class="similar-title">{{ similar['title'] }}</span>
+						<span class="badge">{{ similar['common_keywords'] }} communs</span>
+					</a>
+					{% endfor %}
+				</div>
+			</div>
+			{% endif %}
+
+
+		</div>
+	</div>
+
+	<script src="{{url_for('static', filename='page_script.js')}}"></script>
+	<script src="{{ url_for('static', filename='search.js') }}"></script>
+</body>
+
+</html>
