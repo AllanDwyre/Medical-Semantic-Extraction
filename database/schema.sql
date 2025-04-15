@@ -29,8 +29,8 @@ CREATE TABLE IF NOT EXISTS relations_type (
 -- Table des mots-clés
 CREATE TABLE IF NOT EXISTS keywords (
 	id INTEGER PRIMARY KEY,
+	jdm_d INTEGER, -- ID du mot dans jdm (peut etre nul si jdm n'a pas ce mot)
 	keyword TEXT NOT NULL UNIQUE,
-	category TEXT,
 	frequency INTEGER DEFAULT 0
 );
 
@@ -53,8 +53,6 @@ CREATE TABLE IF NOT EXISTS relations (
 	relation_text TEXT,
 	confidence_score FLOAT,
 	source_type TEXT,
-	start_char INTEGER,
-	end_char INTEGER,
 	FOREIGN KEY (source_id) REFERENCES keywords (id),
 	FOREIGN KEY (target_id) REFERENCES keywords (id),
 	FOREIGN KEY (relation_id) REFERENCES relations_type (id)
@@ -64,7 +62,9 @@ CREATE TABLE IF NOT EXISTS relations (
 CREATE TABLE IF NOT EXISTS page_relations (
 	page_id INTEGER,
 	relation_id INTEGER,
-	PRIMARY KEY (page_id, relation_id),
+	start_char INTEGER,
+	end_char INTEGER,
+	PRIMARY KEY (page_id, relation_id, start_char),
 	FOREIGN KEY (page_id) REFERENCES pages (id),
 	FOREIGN KEY (relation_id) REFERENCES relations (id)
 );

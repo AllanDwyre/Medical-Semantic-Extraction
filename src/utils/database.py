@@ -47,7 +47,11 @@ def save_to_database(db_path: str, analyzed_documents: list[dict]) -> None:
 			keyword = kw['keyword']
 			score = kw['score']
 			
-			cursor.execute("INSERT OR IGNORE INTO keywords (keyword) VALUES (?)", (keyword,))
+			cursor.execute("""
+				INSERT INTO keywords (keyword, frequency)
+				VALUES (?, 1)
+				ON CONFLICT(keyword) DO UPDATE SET frequency = frequency + 1
+			""", (keyword,))
 			cursor.execute("SELECT id FROM keywords WHERE keyword = ?", (keyword,))
 			keyword_id = cursor.fetchone()[0]
 			keyword_ids[keyword.lower()] = keyword_id
@@ -72,18 +76,18 @@ def save_to_database(db_path: str, analyzed_documents: list[dict]) -> None:
 				cursor.execute('''
 					INSERT INTO relations (
 						source_id, target_id, relation_text, confidence_score,
-						source_type, start_char, end_char
-					) VALUES (?, ?, ?, ?, ?, ?, ?)''',
-					(source_id, target_id, rel_text, conf, src_type, start_char, end_char)
+						source_type
+					) VALUES (?, ?, ?, ?, ?)''',
+					(source_id, target_id, rel_text, conf, src_type)
 				)
 
 				
 				relation_id = cursor.lastrowid
 
 				cursor.execute('''
-					INSERT INTO page_relations (page_id, relation_id)
-					VALUES (?, ?)''',
-					(page_id, relation_id))
+					INSERT INTO page_relations (page_id, relation_id, start_char, end_char)
+					VALUES (?, ?, ?, ?)''',
+					(page_id, relation_id, start_char, end_char))
 
 	conn.commit()
 	conn.close()

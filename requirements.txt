@@ -3,6 +3,7 @@ tqdm
 termcolor
 
 # Web scraping
+lxml
 requests
 beautifulsoup4
 wikipedia-api
