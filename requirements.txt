@@ -6,7 +6,6 @@ termcolor
 lxml
 requests
 beautifulsoup4
-wikipedia-api
 
 # JDM
 requests_cache

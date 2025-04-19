@@ -62,7 +62,7 @@
 
 			<h2>Contenu</h2>
 			<div id="content-container">
-				<p>{{ page['content']|highlight_keywords(keywords)|safe }}</p>
+				<p>{{ page['content']|highlight_keywords(keywords)| highlight_brackets| safe }}</p>
 			</div>
 		</div>
 

@@ -30,18 +30,26 @@ visited_lock = threading.Lock()
 
 RECURSIVE_SEARCH = True
 
+
 def get_medical_categories() -> list[str]:
 	"""Récupère une liste de catégories médicales sur Wikipédia."""
+	# categories = [
+	# 	"Médecine", "Maladie", "Anatomie humaine", "Physiologie", "Pharmacologie",
+	# 	"Symptôme", "Diagnostic médical", "Traitement médical", "Chirurgie", 
+	# 	"Spécialité médicale", "Médecine d'urgence", "Pathologie",
+	# 	"Psychiatrie", "Neurologie", "Cardiologie", "Cancérologie", "Immunologie",
+	# 	"Épidémiologie", "Santé publique", "Terme médical"
+	# ]
 	categories = [
 		"Médecine", "Maladie", "Anatomie humaine", "Physiologie", "Pharmacologie",
 		"Symptôme", "Diagnostic médical", "Traitement médical", "Chirurgie", 
 		"Spécialité médicale", "Médecine d'urgence", "Pathologie",
 		"Psychiatrie", "Neurologie", "Cardiologie", "Cancérologie", "Immunologie",
-		"Épidémiologie", "Santé publique", "Terme médical"
+		"Épidémiologie", "Terme médical"
 	]
 	categories_recursive = [
 		"Patient", "Classification utilisée en médecine", "Physiologie", "Dépistage et diagnostic",
-		"Génétique humaine", "Maladie", "Syndrome", "Traitement", "Terme médical", "Code ATC", "Santé publique", "Sémiologie médicale",
+		"Génétique humaine", "Maladie", "Syndrome", "Traitement", "Terme médical", "Code ATC", "Sémiologie médicale",
 		"Médecine d'urgence", "Pathologie", "Spécialité en médecine", "Soins de santé", "Physiologie humaine", "Symptôme", "Diagnostic médical",
 	]
 	return categories_recursive if(RECURSIVE_SEARCH) else categories
@@ -96,7 +104,10 @@ def get_pages_in_category(category: str, limit: int = 1000) -> list[str]:
 	category_cache[category] = pages
 	return pages[:limit]
 
-def get_pages_recursive_mt(category: str, depth: int = 2, limit: int = 1000, 
+def get_excludes_category() -> list[str]:
+	return ["hôpital", "centre", "organisation", "histoire de", "école", "soins de santé", "personnalité", "structure", "académie", "association", "santé publique"]
+
+def get_pages_recursive_mt(category: str, depth: int = 0, limit: int = 1000, 
 						 shared_visited=None, shared_pages=None) -> None:
 	"""Version multithread de la recherche récursive de pages."""
 	if shared_visited is None:
@@ -114,7 +125,7 @@ def get_pages_recursive_mt(category: str, depth: int = 2, limit: int = 1000,
 	if category in category_cache:
 		with visited_lock:
 			shared_pages.extend(category_cache[category])
-		print_color(f"Cache hit pour {category}: {len(category_cache[category])} pages")
+		print_color(f"Cache hit pour {category}: {len(category_cache[category])} pages", "debug")
 		
 		# Traiter les sous-catégories seulement si la profondeur le permet
 		if depth > 0:
@@ -161,7 +172,8 @@ def get_pages_recursive_mt(category: str, depth: int = 2, limit: int = 1000,
 						pages.append(member["title"])
 					elif member["ns"] == 14:  # subcategory
 						sub_name = member["title"].split("Catégorie:", 1)[-1]
-						subcategories.append(sub_name)
+						if not any(exclude in sub_name.lower() for exclude in get_excludes_category()):
+							subcategories.append(sub_name)
 
 			if "continue" in data:
 				continue_param = data["continue"]["cmcontinue"]
@@ -215,6 +227,16 @@ def extract_useful_sections(page):
 
 def clean(text):
 	return re.sub("\(.*?\)", '', text)
+def enrich_text_with_links(soup, html_text):
+	for a in soup.find_all('a'):
+		href = a.get('href', '')
+		title = a.get('title', '')
+		text = a.text
+		# # Format Markdown enrichi
+		# balisage = f"[{text}]({href} \"{title}\")"
+		balisage = f"[{text}]"
+		a.replace_with(balisage)
+	return soup.get_text()
 
 def is_ignored_infobox_class(tag) -> bool:
 	classes = tag.get("class", [])
@@ -241,9 +263,9 @@ def extract_infobox_data(soup):
 
 			cols = row.find_all(["th", "td"])
 			if len(cols) == 2:
-				key = cols[0].get_text(" ", strip=True)
-				value = cols[1].get_text(" ", strip=True)
-				if key and value:
+				key:str = cols[0].get_text(" ", strip=True)
+				value:str = cols[1].get_text(" ", strip=True)
+				if key and value and not key.startswith("Voir/Editer") and not value.startswith("Voir/Editer"):
 					infobox_data[key] = clean(value)
 			elif len(cols) == 1 and cols[0].has_attr("colspan") and cols[0]["colspan"] == "2":
 				if is_ignored_infobox_class(cols[0]):
@@ -254,7 +276,7 @@ def extract_infobox_data(soup):
 
 	return infobox_data
 
-def extract_content_from_page(page_title: str, debugging: bool = False) -> dict:
+def extract_content_from_page(page_title: str) -> dict:
 	"""Extrait le contenu (texte et infobox) d'une page Wikipédia."""
 	# Vérifier le cache
 	if page_title in page_cache:

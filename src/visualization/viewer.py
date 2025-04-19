@@ -81,7 +81,7 @@ def search():
 	
 	return jsonify(formatted_results)
 
-
+@app.template_filter('highlight_keywords')
 def highlight_keywords(text, keywords):
 	"""Surligne les mots-clés dans le texte."""
 	# Trier les mots-clés par longueur (décroissante) pour éviter les problèmes de sous-chaînes
@@ -95,6 +95,7 @@ def highlight_keywords(text, keywords):
 	
 	return text
 
+@app.template_filter('highlight_infobox_key')
 def highlight_infobox_relation_key(key, relations):
 	"""Ajoute une infobulle HTML aux clés de l'infobox si elles correspondent à une relation connue."""
 	key_lower = key.lower()
@@ -103,17 +104,11 @@ def highlight_infobox_relation_key(key, relations):
 	if not matching:
 		return key 
 
-	# Création du contenu en ligne
-	src_rel = ""
-	objects = []
+	# affichage des information volante
+	tooltip_content = "<ul>"
 	for rel in matching:
-		src_rel = f"{rel['source']} {rel['relation_text']}"
-		objects.append(rel['target'])
-	if len(objects)>1:
-		tooltip_content = src_rel + " [" + ", ".join(objects) + "]"
-	else: 
-		tooltip_content = src_rel + " " + objects[0]
-		
+		tooltip_content += f"<li>({rel['relation_text_normalized']}) {rel['target']} </li>"
+	tooltip_content += "</ul>"
 
 	html = (
 		f'<span class="relation-tooltip">'
@@ -124,7 +119,7 @@ def highlight_infobox_relation_key(key, relations):
 
 	return html
 
-
+@app.template_filter('highlight_relations')
 def highlight_relations(text, relations):
 	"""Insère des balises HTML autour des relations textuelles à des positions précises."""
 	relations = sorted(relations, key=lambda r: r['start_char'], reverse=True)
@@ -152,11 +147,10 @@ def highlight_relations(text, relations):
 	return text
 
 
+@app.template_filter('highlight_brackets')
+def highlight_brackets(text):
+    return re.sub(r'\[(.*?)\]', r'<b>\1</b>', text)
 
-# Rendre les fonctions disponibles dans les templates
-app.jinja_env.filters['highlight_keywords'] = highlight_keywords
-app.jinja_env.filters['highlight_relations'] = highlight_relations
-app.jinja_env.filters['highlight_infobox_key'] = highlight_infobox_relation_key
 
 
 
