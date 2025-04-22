@@ -117,6 +117,6 @@ class WikiPageSearcher:
 		
 		if len(all_pages) > self.limit:
 			all_pages = random.sample(all_pages, self.limit)
-
-		print_color(f"Total de pages aléatoirement sélectionner: {len(all_pages)}", "info")
+			print_color(f"Total de pages aléatoirement sélectionner: {len(all_pages)}", "info")
+			
 		return all_pages

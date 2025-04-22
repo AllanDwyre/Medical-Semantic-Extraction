@@ -19,20 +19,17 @@ class WikiOrchestrator:
 	def __init__(self, limit=50000, recursive=True, extract_threads=10, search_threads=5, delay=0.2):
 		self.limit = limit
 		self.output_directory = os.path.join("data", "raw")
-		self.page_cache = {}
 		self.content = WikiContentExtractor()
 		self.infobox = WikiInfoboxExtractor()
 		self.searcher = WikiPageSearcher(recursive, search_threads, delay, limit)
 		self.extract_threads = extract_threads
 		self.progress_lock = threading.Lock()
+		self.session = requests.Session()
 
 	def extract_content_from_page(self, page_title: str):
-		if page_title in self.page_cache:
-			return self.page_cache[page_title]
-
 		url = f"https://fr.wikipedia.org/wiki/{page_title.replace(' ', '_')}"
 		try:
-			response = requests.get(url, timeout=10)
+			response = self.session.get(url, timeout=10)
 			soup = BeautifulSoup(response.text, 'lxml')
 			infobox = self.infobox.extract(soup)
 			main_text = self.content.extract(soup)
@@ -43,11 +40,9 @@ class WikiOrchestrator:
 				"infobox": infobox,
 				"contenu": main_text
 			}
-			self.page_cache[page_title] = content
 			return content
 		except Exception as e:
 			print(f"Erreur lors de l'extraction de {page_title}: {e}")
-			self.page_cache[page_title] = None
 			return None
 
 	def save_to_file(self, content, page_title):
@@ -103,7 +98,7 @@ if __name__ == "__main__":
 	parser.add_argument("--limit", type=int, default=50000, help="Nombre max de pages")
 	parser.add_argument("--extract-threads", type=int, default=10)
 	parser.add_argument("--search-threads", type=int, default=5)
-	parser.add_argument("--delay", type=float, default=0.2)
+	parser.add_argument("--delay", type=float, default=0.05)
 	args = parser.parse_args()
 
 	orchestrator = WikiOrchestrator(
