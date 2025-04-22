@@ -5,9 +5,9 @@ from bs4 import BeautifulSoup
 class WikiContentExtractor:
 	def __init__(self):
 		self.exclude_titles = {
-			'Références', 'Voir aussi', 'Liens externes', 'Bibliographie',
+			'Références', 'Voir aussi', 'Liens externes', 'Lien externe', 'Bibliographie',
 			'Notes et références', 'Notes', "Sources de l'article", 'Articles connexes',
-			'Publications','Documentaire','Annexes','Biographie','Sources'
+			'Publications','Documentaire','Annexes','Biographie','Sources', 'Galerie'
 		}
 
 	def extract_sections(self, soup: BeautifulSoup) -> str:
@@ -25,11 +25,11 @@ class WikiContentExtractor:
 
 			if "mw-heading" in element.get("class", []):
 				header: BeautifulSoup = element.find(["h2", "h3", "h4", "h5", "h6"])
-				title = header.get_text() + "\n"
+				title = header.get_text().strip()
 
 				in_excluded_section = title in self.exclude_titles
 				if not in_excluded_section:
-					content += title
+					content += title + "\n"
 
 				continue
 
