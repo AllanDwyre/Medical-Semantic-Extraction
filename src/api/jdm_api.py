@@ -37,14 +37,14 @@ class RelationType:
 
 class Jdm_api:
 	def __init__(self, base_url="https://jdm-api.demo.lirmm.fr/v0"):
-		self.base_url = base_url
-		self.session = CachedSession('jdm_api_cache', expire_after=3600)
+		self._base_url = base_url
+		self._session = CachedSession('database/jdm_api_cache', expire_after=3600)
 
 	def _getEndpoint(self, endpoint: str):
-		return f"{self.base_url}/{endpoint}"
+		return f"{self._base_url}/{endpoint}"
 
 	def _fetch(self, endpoint: str, params=None):
-		return self.session.get(self._getEndpoint(endpoint), params=params)
+		return self._session.get(self._getEndpoint(endpoint), params=params)
 
 	def fetch_term_by_name(self, term):
 		"""
