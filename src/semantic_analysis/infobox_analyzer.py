@@ -41,7 +41,7 @@ class InfoboxRelationDetector:
 		return None
 
 	def _is_domain(self, key: str) -> str | None:
-		if {"spécialité", "domaine"} in key.lower():
+		if key.lower() in {"spécialité", "domaine"}:
 			return "r_domain"
 		return None
 

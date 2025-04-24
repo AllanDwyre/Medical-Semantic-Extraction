@@ -26,17 +26,17 @@ def process_document(json_file_path):
 	try:
 		infobox_rel = infobox_analyzer.analyze_infobox(info.title, info.infobox)
 	except Exception as e:
-		return {"error": f"[INFOBOX]", "file": info.title}
+		return {"error": f"[INFOBOX]", "file": info.title, "message": str(e).split("\n")[0]}
 
 	try:
 		content_rel = content_analyzer.analyse_content(info.content)
 	except Exception as e:
-		return {"error": f"[CONTENT]", "file": info.title}
+		return {"error": f"[CONTENT]", "file": info.title, "message": str(e).split("\n")[0]}
 
 	try:
 		return ProcessedDocument(info, relation_infobox=infobox_rel, relation_content=content_rel)
 	except Exception as e:
-		return {"error": f"[DOCBUILD]", "file": info.title}
+		return {"error": f"[DOCBUILD]", "file": info.title, "message": str(e).split("\n")[0]}
 
 
 
