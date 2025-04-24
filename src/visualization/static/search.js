@@ -47,13 +47,13 @@ document.addEventListener('DOMContentLoaded', function () {
 						div.innerHTML = `
 							<a href="/page/${page.id}" class="text-decoration-none">
 								<strong>${page.title}</strong>
+								<div class="small">
+									Mots-clés: ${page.keywords.slice(0, 3).map(k =>
+										`<span class="badge">${k.keyword}</span>`
+									).join(' ')}
+									${page.keywords.length > 3 ? `<span class="badge">+${page.keywords.length - 3}</span>` : ''}
+								</div>
 							</a>
-							<div class="small">
-								Mots-clés: ${page.keywords.slice(0, 3).map(k =>
-									`<span class="badge">${k.keyword}</span>`
-								).join(' ')}
-								${page.keywords.length > 3 ? `<span class="badge">+${page.keywords.length - 3}</span>` : ''}
-							</div>
 						`;
 						searchResults.appendChild(div);
 					});

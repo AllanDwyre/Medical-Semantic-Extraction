@@ -1,162 +1,103 @@
-import json
-import concurrent.futures
+import multiprocessing
 from tqdm import tqdm
 from pathlib import Path
-from collections import Counter
-from threading import Lock
 
-from src.utils.helper import load_nlp_model, clear_directory, create_json_file
-from src.utils.database import save_to_database
-
+from src.utils.helper import load_nlp_model, clear_directory
 from src.semantic_analysis.content_analyser import ContentAnalyzer
 from src.semantic_analysis.infobox_analyzer import InfoboxAnalyzer
+from src.semantic_analysis.document import DocumentInfo, ProcessedDocument
+import traceback
+
+# Variables globales par process
+nlp_model = None
+content_analyzer = None
+infobox_analyzer = None
+
+def initializer():
+	global nlp_model, content_analyzer, infobox_analyzer
+	nlp_model = load_nlp_model()
+	content_analyzer = ContentAnalyzer(nlp_model)
+	infobox_analyzer = InfoboxAnalyzer(nlp_model)
+
+
+def process_document(json_file_path):
+	info = DocumentInfo.from_json_file(json_file_path)
+
+	try:
+		infobox_rel = infobox_analyzer.analyze_infobox(info.title, info.infobox)
+	except Exception as e:
+		return {"error": f"[INFOBOX]", "file": info.title}
+
+	try:
+		content_rel = content_analyzer.analyse_content(info.content)
+	except Exception as e:
+		return {"error": f"[CONTENT]", "file": info.title}
+
+	try:
+		return ProcessedDocument(info, relation_infobox=infobox_rel, relation_content=content_rel)
+	except Exception as e:
+		return {"error": f"[DOCBUILD]", "file": info.title}
+
+
 
 class SemanticAnalyzer:
-	def __init__(self, data_dir="data/raw", output_dir="data/processed", db_path="database/medical_knowledge.db", max_workers=4	):
+	def __init__(self, batch_size = 500, data_dir="data/raw", output_dir="data/processed", db_path="database/medical_knowledge.db", max_workers=4):
 		self.data_dir = Path(data_dir)
 		self.output_dir = Path(output_dir)
 		self.db_path = Path(db_path)
 		self.max_workers = max_workers
-
-		nlp_model = load_nlp_model()
-		self.content_analyzer = ContentAnalyzer(nlp_model, nlp_model.Defaults.stop_words)
-		self.infobox_analyzer = InfoboxAnalyzer(nlp_model)
+		self.batch_size = batch_size
 
 		self.output_dir.mkdir(parents=True, exist_ok=True)
 		clear_directory(output_dir)
-		
-		self.lock = Lock()
 
-	def preprocess_document(self, json_file):
-		"""Prétraite un document"""
-		try:
-			with open(json_file, 'r', encoding='utf-8') as f:
-				data = json.load(f)
-
-			title = data.get('titre', 'Sans titre')
-			content = data.get('contenu', '')
-			infobox = data.get('infobox', {})
-			url = data.get('url', '')
-
-			preprocessed_tokens = self.content_analyzer.preprocess_text(content)
-			entities = self.content_analyzer.extract_entities(content)
-			relations_text = self.content_analyzer.extract_relations(content)
-			relations_infobox, infobox_keywords = self.infobox_analyzer.analyze_infobox(title, infobox)
-			
-			return {
-				'file': json_file,
-				'title': title,
-				'content': content,
-				'url': url,
-				'infobox': infobox,
-				'relations_text': relations_text,
-				'relations_infobox': relations_infobox,
-				'preprocessed_tokens': preprocessed_tokens,
-				'infobox_keywords': infobox_keywords
-			}
-		except Exception as e:
-			return {"error": str(e), "file": str(json_file)}
+	def yield_batch_files(self):
+		batch = []
+		for json_file in self.data_dir.glob("*.json"):
+			batch.append(json_file)
+			if len(batch) == self.batch_size:
+				yield batch
+				batch = []
+		if batch:
+			yield batch
 
 	def analyze_corpus(self):
-		json_files = list(self.data_dir.glob('*.json'))
-		preprocessed_documents = []
-		errors = []
+		all_errors = []
+		total_processed = 0
+		batch_num = 0
 
-		# Étape 1: Prétraitement parallèle de tous les documents sans TF-IDF
-		with tqdm(total=len(json_files), desc="Prétraitement des documents") as progress_bar:
-			with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-				future_to_file = {executor.submit(self.preprocess_document, json_file): json_file for json_file in json_files}
-				
-				for future in concurrent.futures.as_completed(future_to_file):
-					json_file = future_to_file[future]
-					try:
-						result = future.result()
-						if "error" in result:
-							errors.append(result)
-							tqdm.write(f"Erreur lors du prétraitement de {json_file.stem}: {result['error']}")
+		for batch_files in self.yield_batch_files():
+			batch_num += 1
+			with tqdm(total=len(batch_files), desc=f"Batch {batch_num}", unit="file", colour='green') as pbar:
+				with multiprocessing.Pool(
+					processes=self.max_workers,
+					initializer=initializer
+				) as pool:
+					for result in pool.imap_unordered(process_document, map(str, batch_files)):
+						if isinstance(result, dict) and "error" in result:
+							all_errors.append(result)
 						else:
-							preprocessed_documents.append(result)
-					except Exception as e:
-						tqdm.write(f"Exception lors du prétraitement de {json_file.stem}: {e}")
-						errors.append({"error": str(e), "file": str(json_file)})
-					
-					progress_bar.update(1)
-					progress_bar.set_description(f"Prétraitement: {json_file.stem}")
+							result.save_to_database(self.db_path)
+							total_processed += 1
+						pbar.update(1)
 
-		# Étape 2: Extraction des mots-clés TF-IDF sur tout le corpus
-		if preprocessed_documents:
-			tqdm.write("Extraction des mots-clés TF-IDF sur l'ensemble du corpus...")
-			
-			# Collecte des contenus et titres pour TF-IDF
-			all_contents = [doc['content'] for doc in preprocessed_documents]
-			all_titles = [doc['title'] for doc in preprocessed_documents]
-			
-			# Calcul TF-IDF sur tout le corpus
-			keywords_results = self.content_analyzer.extract_keywords_tfidf(all_contents, all_titles)
-			
-			# Création de la version finale des documents avec les mots-clés
-			analyzed_documents = []
-			
-			with tqdm(total=len(preprocessed_documents), desc="Finalisation des documents") as progress_bar:
-				for i, doc in enumerate(preprocessed_documents):
-					try:
-						# Création du document final avec les mots-clés
-						final_doc = {
-							'title': doc['title'],
-							'content': doc['content'],
-							'url': doc['url'],
-							'infobox': doc['infobox'],
-							'keywords': keywords_results[i]['keywords'],
-							'relations_text': doc['relations_text'],
-							'relations_infobox': doc['relations_infobox']
-						}
+		print(f"\n✅ Total documents analysés : {total_processed}")
+		print(f"❌ Total erreurs : {len(all_errors)}")
 
-						# On ajoute le titre comme keywords
-						title_keyword = {
-							'keyword': doc['title'],
-							'score': 1.0 
-						}
-						final_doc['keywords'].append(title_keyword)
-
-						# On ajoute les infobox_keywords comme keywords
-						for value in doc.get('infobox_keywords', []):
-							infobox_value_keyword = {
-								'keyword': value,
-								'score': 0.8
-							}
-							final_doc['keywords'].append(infobox_value_keyword)
-						
-						# on supprime les doublons
-						keywords_by_word = {}
-
-						for kw in final_doc['keywords']:
-							word = kw['keyword']
-							score = kw['score']
-							keywords_by_word[word] = max(score, keywords_by_word.get(word, 0))
-
-						# Conversion en liste de dictionnaires
-						final_doc['keywords'] = [
-							{'keyword': k, 'score': s} for k, s in keywords_by_word.items()
-						]
-							
-						analyzed_documents.append(final_doc)
-						json_file = doc['file']
-						create_json_file(self.output_dir, Path(json_file).stem, final_doc)
-						
-					except Exception as e:
-						json_file = doc.get('file', 'unknown')
-						tqdm.write(f"Exception lors de la finalisation de {Path(json_file).stem}: {e}")
-						errors.append({"error": str(e), "file": str(json_file)})
-					
-					progress_bar.update(1)
-					progress_bar.set_description(f"Finalisation: {Path(doc['file']).stem}")
-
-			# Sauvegarde dans la base de données
-			tqdm.write(f"Sauvegarde de {len(analyzed_documents)} documents dans la base de données...")
-			save_to_database(str(self.db_path), analyzed_documents)
-		
 		return {
-			"analyzed_count": len(preprocessed_documents) - len(errors),
-			"error_count": len(errors),
-			"errors": errors
+			"analyzed_count": total_processed,
+			"error_count": len(all_errors),
+			"errors": all_errors
 		}
+
+	# 	Threads pool executor + batch 1k page (paramaters : batched_limit = 1000)
+	#		- [x] Traitement processus parallèles par batch
+	#		- [x] Sauvegarde au fur et à mesure
+	# 	Analyse sémantique
+	#		- [x] Analyse complète de infobox (key analyse: pattern matching) --> tres simple et con
+	#		- [ ] Analyse complète de content (preprocessing, dep parsing, NER médicaliser, balise)
+	# 			- [ ] Dependency Parsing
+	# 			- [ ] POS
+	# 			- [ ] Rule-Matching classification -> 
+	# 			- [ ] Creation du NER médicalisé
+

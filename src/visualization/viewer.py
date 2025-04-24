@@ -1,7 +1,8 @@
 from flask import Flask, render_template, request, jsonify
 from src.utils.helper import open_localhost
-from src.utils.database import get_pages, get_page_by_id, get_page_data
-import json
+from src.utils.database import get_pages
+from collections import defaultdict
+from src.semantic_analysis.document import ProcessedDocument, Relation
 import sqlite3
 import re
 
@@ -32,102 +33,99 @@ def page(page_id):
 	"""Afficher une page avec ses mots-clés surlignés et ses relations."""
 	conn = get_db_connection()
 	
-	# Récupérer la page
-	page_data = get_page_by_id(conn, page_id)
-	if not page_data:
-		return "Page non trouvée", 404
+	try:
+		document: ProcessedDocument = ProcessedDocument.from_database(conn, page_id)
+		similar_pages = document.get_similar_pages(conn)
+	except Exception as e:
+			return str(e), 404
 	
-	keywords, relations, similar_pages, total_pages = get_page_data(conn, page_id)
 	conn.close()
-
-	infobox = json.loads(page_data['infobox']) if page_data['infobox'] else {}
-
 	return render_template('page.html', 
-							page=page_data,
-							infobox=infobox,
-							keywords=keywords,
-							relations=relations,
-							similar_pages=similar_pages,
-							total_pages=total_pages)
+							page= document.info,
+							relation_infobox = document.relation_infobox,
+							relation_content= document.relation_content,
+							similar_pages=similar_pages)
 @app.route('/search')
 def search():
-	"""Recherche de pages par mot-clé."""
-	query = request.args.get('q', '')
+	"""Recherche de pages par mot-clé (dans le titre ou les mots-clés)."""
+	query = request.args.get('q', '').strip()
 	if not query:
 		return jsonify([])
-	
+
 	conn = get_db_connection()
+
 	results = conn.execute('''
-		SELECT p.id, p.title, k.keyword, pk.importance_score
+		SELECT DISTINCT p.id, p.title, k1.keyword AS sujet, k2.keyword AS object
 		FROM pages p
-		JOIN page_keywords pk ON p.id = pk.page_id
-		JOIN keywords k ON pk.keyword_id = k.id
-		WHERE k.keyword LIKE ? OR p.title LIKE ?
-		ORDER BY pk.importance_score DESC
-		LIMIT 20
+		INNER JOIN page_relations pr ON pr.page_id = p.id
+		INNER JOIN relations r ON pr.relation_id = r.id
+		INNER JOIN keywords k1 ON k1.id = r.source_id
+		INNER JOIN keywords k2 ON k2.id = r.target_id
+		WHERE k1.keyword LIKE ?
+		OR k2.keyword LIKE ?
+		ORDER BY p.title
+		LIMIT 15
 	''', (f'%{query}%', f'%{query}%')).fetchall()
-	
+
 	conn.close()
-	
-	# Formater les résultats
-	formatted_results = []
-	for row in results:
-		formatted_results.append({
-			'id': row['id'],
-			'title': row['title'],
-			'keyword': row['keyword'],
-			'score': row['importance_score']
-		})
-	
-	return jsonify(formatted_results)
 
-@app.template_filter('highlight_keywords')
-def highlight_keywords(text, keywords):
-	"""Surligne les mots-clés dans le texte."""
-	# Trier les mots-clés par longueur (décroissante) pour éviter les problèmes de sous-chaînes
-	sorted_keywords = sorted(keywords, key=lambda x: len(x['keyword']), reverse=True)
-	
-	# Remplacer les occurrences des mots-clés
-	for kw in sorted_keywords:
-		keyword = kw['keyword']
-		pattern = re.compile(r'\b' + re.escape(keyword) + r'\b', re.IGNORECASE)
-		text = pattern.sub(f'<span class="highlight" data-selected="0">{keyword}</span>', text)
-	
-	return text
+	filtered_result = [row for row in results if row['sujet'] or row['object']]
 
-@app.template_filter('highlight_infobox_key')
-def highlight_infobox_relation_key(key, relations):
-	"""Ajoute une infobulle HTML aux clés de l'infobox si elles correspondent à une relation connue."""
-	key_lower = key.lower()
-	matching = [rel for rel in relations if rel['relation_text'] and rel['relation_text'].lower() == key_lower]
+	return jsonify([
+		{"id": row["id"], "title": row["title"], "keyword": f"{row['sujet'] or ''} / {row['object'] or ''}".strip(" /") }
+		for row in filtered_result
+	])
 
-	if not matching:
-		return key 
+@app.template_filter('highlight_infobox')
+def highlight_infobox(infobox : dict, relations : list[Relation]):
+    
+	# rejoindre chaque object (repartie a travers les relations) vers un seul pattern (key)
+	pattern_to_objets = defaultdict(list)
+	pattern_to_relation_types = defaultdict(set)  # Pour stocker les types de relations uniques
 
-	# affichage des information volante
-	tooltip_content = "<ul>"
-	for rel in matching:
-		tooltip_content += f"<li>({rel['relation_text_normalized']}) {rel['target']} </li>"
-	tooltip_content += "</ul>"
+	for relation in relations:
+		pattern_to_objets[relation.pattern].append(relation.objet)
+		pattern_to_relation_types[relation.pattern].add(relation.relation_type)
 
-	html = (
-		f'<span class="relation-tooltip">'
-		f'<span class="relation-underline">{key}</span>'
-		f'<span class="tooltip">{tooltip_content}</span>'
-		f'</span>'
-	)
+	pattern_to_objets = dict(pattern_to_objets)
+	pattern_to_relation_types = {k: list(v) for k, v in pattern_to_relation_types.items()}
+    
+	html = ""
+	for key, value in infobox.items():
+		if not value:
+			html += f"<h3> {key} </h3>"
+			continue
+
+		html += "<li><strong>"
+		if key in pattern_to_objets:
+			tooltip_content = pattern_to_relation_types[key]
+			html += (
+				f'<span class="relation-tooltip">'
+				f'<span class="relation-underline">{key} : </span>'
+				f'<span class="tooltip">{tooltip_content}</span>'
+				f'</span></strong>'
+			)
+			for objet in pattern_to_objets[key]:
+				html += (
+					f'<span class="highlight" data-selected="0">'
+					f'{objet}'
+					f'</span>'
+				)
+		else :
+			html += key + " : </strong>"
+			html += value +"</li>"
 
 	return html
 
-@app.template_filter('highlight_relations')
-def highlight_relations(text, relations):
+@app.template_filter('highlight_content')
+def highlight_content(content : str, relations : list[Relation]):
 	"""Insère des balises HTML autour des relations textuelles à des positions précises."""
 	relations = sorted(relations, key=lambda r: r['start_char'], reverse=True)
 
 	for rel in relations:
 		start = rel['start_char']
 		end = rel['end_char']
-		relation_text = text[start:end]
+		relation_text = content[start:end]
 
 		relation_type = f"[{rel['relation']}]"
 		tooltip_html = (
@@ -142,16 +140,14 @@ def highlight_relations(text, relations):
 		)
 
 		# Remplacer dans le texte à la bonne position
-		text = text[:start] + html + text[end:]
+		content = content[:start] + html + content[end:]
 
-	return text
+	return content
 
 
 @app.template_filter('highlight_brackets')
 def highlight_brackets(text):
     return re.sub(r'\[(.*?)\]', r'<b>\1</b>', text)
-
-
 
 
 def launch_localhost(debug=False):

@@ -31,13 +31,13 @@ CREATE TABLE IF NOT EXISTS keywords (
 	id INTEGER PRIMARY KEY,
 	jdm_d INTEGER, -- ID du mot dans jdm (peut etre nul si jdm n'a pas ce mot)
 	keyword TEXT NOT NULL UNIQUE, -- normalized
-	frequency INTEGER DEFAULT 0
+	frequency INTEGER DEFAULT 1
 );
 
 -- Table des chaine de mot representant une relation (est une; est sur; fait partie de; ...)
 CREATE TABLE IF NOT EXISTS patterns (
 	id INTEGER PRIMARY KEY,
-	pattern TEXT NOT NULL UNIQUE, -- normalized
+	pattern TEXT NOT NULL UNIQUE --normalized
 );
 
 -- Table des relations entre mots-clés
@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS relations (
 	target_id INTEGER,
 	pattern_id INTEGER,
 	predicted_relation_type INTEGER,
+	source TEXT, -- infobox ou content
 	confidence_score FLOAT,
 	FOREIGN KEY (source_id) REFERENCES keywords (id),
 	FOREIGN KEY (target_id) REFERENCES keywords (id),
@@ -61,7 +62,7 @@ CREATE TABLE IF NOT EXISTS relation_patterns (
 	frequency INTEGER,
 	PRIMARY KEY (relation_type_id, pattern_id),
 	FOREIGN KEY (relation_type_id) REFERENCES relations_type (id),
-	FOREIGN KEY (pattern_id) REFERENCES patterns (id),
+	FOREIGN KEY (pattern_id) REFERENCES patterns (id)
 );
 
 -- Liaison entre pages et mots-clés
@@ -70,7 +71,7 @@ CREATE TABLE IF NOT EXISTS page_relations (
 	relation_id INTEGER,
 	start_rel TEXT, -- Start k1; Start rel; Start k2; 
 	end_rel TEXT, -- End k1; End rel; End k2; 
-	PRIMARY KEY (page_id, keyword_id),
+	PRIMARY KEY (page_id, relation_id),
 	FOREIGN KEY (page_id) REFERENCES pages (id),
 	FOREIGN KEY (relation_id) REFERENCES relations (id)
 );

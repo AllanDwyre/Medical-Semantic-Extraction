@@ -114,7 +114,6 @@ class WikiOrchestrator:
 			all_pages = [p for p in all_pages if p not in extracted_pages]
 			remaining = remaining - batch_success_count
 			if len(all_pages) == 0:
-				print_color(f"?? {len(all_pages)}", "debug")
 				break
 
 		elapsed = time.time() - start_time
