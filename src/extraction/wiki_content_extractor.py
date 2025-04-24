@@ -7,7 +7,8 @@ class WikiContentExtractor:
 		self.exclude_titles = {
 			'Références', 'Voir aussi', 'Liens externes', 'Lien externe', 'Bibliographie',
 			'Notes et références', 'Notes', "Sources de l'article", 'Articles connexes',
-			'Publications','Documentaire','Annexes','Biographie','Sources', 'Galerie'
+			'Publications','Documentaire','Annexes','Biographie','Sources', 'Galerie',
+			'Articles'
 		}
 
 	def extract_sections(self, soup: BeautifulSoup) -> str:

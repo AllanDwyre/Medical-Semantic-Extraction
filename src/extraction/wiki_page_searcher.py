@@ -3,7 +3,6 @@ import requests
 import time
 from concurrent.futures import ThreadPoolExecutor
 from src.utils.console import print_color
-import random
 
 class WikiPageSearcher:
 	def __init__(self, recursive=True, max_threads=5, api_delay=0.2, limit=50000):
@@ -13,28 +12,62 @@ class WikiPageSearcher:
 		self.page_cache = {}
 		self.page_cache = {}
 		self.category_cache = {}
+		self.session = requests.Session()
 		self.visited_lock = threading.Lock()
 		self.limit = limit
+		self.exclude_categories = self._get_excludes_category()
 
-	def get_excludes_category(self):
-		return ["hôpital", "centre", "organisation", "histoire de", "école", "soins de santé", "personnalité", "structure", "académie", "association", "santé publique"]
+	def _get_excludes_category(self):
+		excluded = set()
+		url = "https://fr.wikipedia.org/w/api.php"
+		params = {
+			"action": "query",
+			"format": "json",
+			"list": "categorymembers",
+			"cmtitle": "Catégorie:Médecin par spécialité",
+			"cmtype": "subcat",
+			"cmlimit": "max"
+		}
+		try:
+			while True:
+				response = self.session.get(url, params=params, timeout=10)
+				data = response.json()
+				for member in data.get("query", {}).get("categorymembers", []):
+					# Extrait juste le nom de la sous-catégorie
+					cat_name = member["title"].replace("Catégorie:", "")
+					excluded.add(cat_name.lower())
+				
+				if "continue" in data:
+					params["cmcontinue"] = data["continue"]["cmcontinue"]
+				else:
+					break
 
-	def get_categories(self):
+		except Exception as e:
+			print_color(f"Erreur lors de la récupération des sous-catégories à exclure : {e}", "error")
+
+		return excluded
+
+	def _get_categories(self):
 		base = [
+			"Page utilisant P492",  "Page utilisant P699", "Page utilisant P557", 
+			"Page utilisant P3201",
 			"Médecine", "Maladie", "Anatomie humaine", "Physiologie", "Pharmacologie",
 			"Symptôme", "Diagnostic médical", "Traitement médical", "Chirurgie",
 			"Spécialité médicale", "Médecine d'urgence", "Pathologie",
 			"Psychiatrie", "Neurologie", "Cardiologie", "Cancérologie", "Immunologie",
-			"Épidémiologie", "Terme médical"
+			"Épidémiologie", "Terme médical",
 		]
 		recursive = [
+			"Page utilisant P492",  "Page utilisant P699", "Page utilisant P557", 
+			"Page utilisant P3201",
 			"Patient", "Classification utilisée en médecine", "Physiologie", "Dépistage et diagnostic",
 			"Génétique humaine", "Maladie", "Syndrome", "Traitement", "Terme médical", "Code ATC", "Sémiologie médicale",
-			"Médecine d'urgence", "Pathologie", "Spécialité en médecine", "Soins de santé", "Physiologie humaine", "Symptôme", "Diagnostic médical"
+			"Médecine d'urgence", "Pathologie", "Spécialité en médecine", "Soins de santé", "Physiologie humaine", "Symptôme", "Diagnostic médical",
+			"Biologie médicale"
 		]
 		return recursive if self.recursive else base
 
-	def get_pages_recursive_mt(self, category, depth=0, limit=1000, shared_visited=None, shared_pages=None):
+	def _get_pages_recursive_mt(self, category, depth=0, limit=1000, shared_visited=None, shared_pages=None):
 		if shared_visited is None:
 			shared_visited = set()
 		if shared_pages is None:
@@ -50,7 +83,7 @@ class WikiPageSearcher:
 				shared_pages.extend(self.category_cache[category])
 			return
 
-		session = requests.Session()
+		
 		url = "https://fr.wikipedia.org/w/api.php"
 		pages, subcategories = [], []
 		continue_param = ""
@@ -64,15 +97,17 @@ class WikiPageSearcher:
 				params["cmcontinue"] = continue_param
 
 			try:
-				response = session.get(url=url, params=params, timeout=10)
+				response = self.session.get(url=url, params=params, timeout=10)
 				data = response.json()
 				for member in data.get("query", {}).get("categorymembers", []):
 					if member["ns"] == 0:
 						pages.append(member["title"])
 					elif member["ns"] == 14:
 						sub_name = member["title"].split("Catégorie:", 1)[-1]
-						if not any(ex in sub_name.lower() for ex in self.get_excludes_category()):
+						if sub_name.lower() not in self.exclude_categories and "institut" not in sub_name.lower():
 							subcategories.append(sub_name)
+						# else:
+						# 	print_color(f"Catégorie exclu : {sub_name}", "debug")
 				if "continue" in data:
 					continue_param = data["continue"]["cmcontinue"]
 				else:
@@ -92,7 +127,7 @@ class WikiPageSearcher:
 		if depth > 0:
 			with ThreadPoolExecutor(max_workers=self.max_threads) as executor:
 				futures = [
-					executor.submit(self.get_pages_recursive_mt, subcat, depth - 1, limit, shared_visited, shared_pages)
+					executor.submit(self._get_pages_recursive_mt, subcat, depth - 1, limit, shared_visited, shared_pages)
 					for subcat in subcategories
 				]
 				for future in futures:
@@ -106,8 +141,8 @@ class WikiPageSearcher:
 		depth = 2 if self.recursive else 0
 		with ThreadPoolExecutor(max_workers=self.max_threads) as executor:
 			futures = [
-				executor.submit(self.get_pages_recursive_mt, cat, depth, self.limit, visited, all_pages)
-				for cat in self.get_categories()
+				executor.submit(self._get_pages_recursive_mt, cat, depth, self.limit, visited, all_pages)
+				for cat in self._get_categories()
 			]
 			for future in futures:
 				future.result()
@@ -115,8 +150,4 @@ class WikiPageSearcher:
 		all_pages = list(set(all_pages))
 		print_color(f"Total de pages uniques trouvées: {len(all_pages)}", "success")
 		
-		if len(all_pages) > self.limit:
-			all_pages = random.sample(all_pages, self.limit)
-			print_color(f"Total de pages aléatoirement sélectionner: {len(all_pages)}", "info")
-			
 		return all_pages

@@ -2,6 +2,7 @@
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
+import random
 import json
 import requests
 import threading
@@ -14,6 +15,7 @@ from src.utils.helper import clear_directory, create_directory
 from src.extraction.wiki_content_extractor import WikiContentExtractor
 from src.extraction.wiki_page_searcher import WikiPageSearcher
 from src.extraction.wiki_infobox_extractor import WikiInfoboxExtractor
+from src.extraction.wiki_category_analysis import WikiCategoryAnalysis
 
 class WikiOrchestrator:
 	def __init__(self, limit=50000, recursive=True, extract_threads=10, search_threads=5, delay=0.2):
@@ -21,6 +23,7 @@ class WikiOrchestrator:
 		self.output_directory = os.path.join("data", "raw")
 		self.content = WikiContentExtractor()
 		self.infobox = WikiInfoboxExtractor()
+		self.category = WikiCategoryAnalysis()
 		self.searcher = WikiPageSearcher(recursive, search_threads, delay, limit)
 		self.extract_threads = extract_threads
 		self.progress_lock = threading.Lock()
@@ -31,12 +34,19 @@ class WikiOrchestrator:
 		try:
 			response = self.session.get(url, timeout=10)
 			soup = BeautifulSoup(response.text, 'lxml')
+
+			categories, is_ok = self.category.extract(soup)
+
+			if not is_ok:
+				return None
+			
 			infobox = self.infobox.extract(soup)
 			main_text = self.content.extract(soup)
 
 			content = {
 				"url": url,
 				"titre": page_title,
+				"categories": categories,
 				"infobox": infobox,
 				"contenu": main_text
 			}
@@ -58,8 +68,12 @@ class WikiOrchestrator:
 			print(f"Erreur lors de la sauvegarde de {page_title}: {e}")
 			return False
 
-	def process_page(self, page_title, progress_bar):
+	def process_page(self, page_title, progress_bar: tqdm):
 		content = self.extract_content_from_page(page_title)
+		if not content:
+			progress_bar.total = progress_bar.total - 1
+			# progress_bar.write(f"{page_title} à été exlu")
+			return False
 		success = self.save_to_file(content, page_title)
 		with self.progress_lock:
 			progress_bar.update(1)
@@ -73,17 +87,35 @@ class WikiOrchestrator:
 		start_time = time.time()
 
 		all_pages = self.searcher.run()
-
-		progress_bar = tqdm(total=len(all_pages), desc="📄 Traitement des pages", unit="page", colour='cyan')
+		extracted_pages = set()
 		success_count = 0
-		with ThreadPoolExecutor(max_workers=self.extract_threads) as executor:
-			futures = [
-				executor.submit(self.process_page, title, progress_bar)
-				for title in all_pages
-			]
-			for future in futures:
-				if future.result():
-					success_count += 1
+		remaining = min(len(all_pages), self.limit)
+		while (remaining > 0) :
+			
+			batch_success_count = 0
+			batch = all_pages[:remaining]
+			if len(all_pages) > remaining:
+				batch = random.sample(all_pages, remaining)
+				print_color(f"Total de pages aléatoirement sélectionner: {len(batch)}", "info")
+				
+			progress_bar = tqdm(total=len(batch), desc="📄 Traitement des pages", unit="page", colour='cyan')
+			with ThreadPoolExecutor(max_workers=self.extract_threads) as executor:
+				futures = {
+							executor.submit(self.process_page, title, progress_bar) : title
+							for title in batch
+					}
+				for future in futures:
+					title = futures[future]
+					extracted_pages.add(title)
+					if future.result():
+						success_count += 1
+						batch_success_count += 1
+
+			all_pages = [p for p in all_pages if p not in extracted_pages]
+			remaining = remaining - batch_success_count
+			if len(all_pages) == 0:
+				print_color(f"?? {len(all_pages)}", "debug")
+				break
 
 		elapsed = time.time() - start_time
 		print_color(f"{success_count} pages sauvegardées avec succès.", "success")
