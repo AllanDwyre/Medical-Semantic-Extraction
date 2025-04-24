@@ -51,7 +51,7 @@ class WikiCategoryAnalysis :
 		if public_soup is None:
 			return categories
 		
-		for a in public_soup.find_all('a'):
+		for a in public_soup.find_all('a')[1:]:
 			categories.append(a.get_text())
 
 		if hidden_soup is None:
