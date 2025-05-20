@@ -17,5 +17,5 @@ __pycache__/
 
 
 # Notebooks
-notebooks/
-*.ipynb
+# notebooks/
+# *.ipynb
