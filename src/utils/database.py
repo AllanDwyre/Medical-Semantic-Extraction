@@ -1,6 +1,6 @@
 from pathlib import Path
 import sqlite3
-from src.api.jdm_api import Jdm_api, RelationType
+from src.api.jdm_api import JdmApi, RelationType
 
 def init_database(db_path: str, sql_file: str = "database/schema.sql"):
 	db_file = Path(db_path)
@@ -22,8 +22,8 @@ def init_database(db_path: str, sql_file: str = "database/schema.sql"):
 	conn.close()
 
 def populate_relation_types(db_path: str):
-	api = Jdm_api()
-	relation_types: list[RelationType] = api.fetch_relations_types()
+	api = JdmApi()
+	relation_types: list[RelationType] = api.fetch_relations_types().values()
 
 	conn = sqlite3.connect(db_path)
 	cursor = conn.cursor()

@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS relations (
 	target_id INTEGER,
 	pattern_id INTEGER,
 	predicted_relation_type INTEGER,
-	source TEXT, -- infobox ou content
+	source TEXT, -- content, infobox ou catégorie
 	confidence_score FLOAT,
 	FOREIGN KEY (source_id) REFERENCES keywords (id),
 	FOREIGN KEY (target_id) REFERENCES keywords (id),
