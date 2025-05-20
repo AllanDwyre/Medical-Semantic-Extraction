@@ -1,7 +1,11 @@
+from __future__ import annotations
 import json
 import sqlite3
 from sqlite3 import Cursor, Connection
 from dataclasses import dataclass, field 
+from spacy.tokens.token import Token
+from typing import Dict, List, Optional
+
 
 @dataclass
 class DocumentInfo :
@@ -34,9 +38,9 @@ class Relation:
 	source:			str = '' # infobox ou content
 	# TODO : Confidence score et avoir le normalized pattern++++ (important)
 
-	def set_start_and_end(self, subjet : tuple[int,int], pattern: tuple[int,int], objet: tuple[int,int]) -> None:
-		self.start += subjet[0] + ";" + pattern[0] + ";" +  objet[0]
-		self.end += subjet[1] + ";" + pattern[1] + ";" +  objet[1]
+	def set_start_and_end(self, sujet : tuple[int,int], pattern: tuple[int,int], objet: tuple[int,int]) -> None:
+		self.start += sujet[0] + ";" + pattern[0] + ";" +  objet[0]
+		self.end += sujet[1] + ";" + pattern[1] + ";" +  objet[1]
 	def get_start_end(self, attribute:str) -> tuple[int,int]: 
 		"""Get the start & end of a attribute : (sujet, objet or pattern)"""
 		st_suj, st_rel, st_obj = self.start.split(';')
@@ -216,4 +220,65 @@ class ProcessedDocument:
 		return similar_pages
 
 
+@dataclass
+class Dependency:
+	token		: Token					= None
+	head		: Dependency			= None
+	children	: dict[str, list[Dependency]] = field(default_factory=dict)
+
+
+
+@dataclass
+class BasicToken:
+	text	: str
+	idx		: int
+	
+	def __len__(self):
+		return len(self.text)
+
+@dataclass
+class CompositeToken:
+	main_token		: Token
+	modifier_tokens	: List[Token]
+
+	_composite_word : str			= ""
+	
+	def _compute_text(self):
+		"""Calcule le texte complet du token composé"""
+		tokens = [self.main_token] + self.modifier_tokens
+		tokens.sort(key=lambda t: t.idx)
+		
+		return " ".join([t.text for t in tokens])
+	
+	@property
+	def idx(self):
+		return self.main_token.idx
+	
+	@property
+	def text(self):
+		if(len(self._composite_word) > 0):
+			return self._composite_word
+		
+		self._composite_word =  self._compute_text()
+		return self._composite_word
+	
+	@property
+	def lemma_(self):
+		"""Renvoie le lemme composé"""
+		return " ".join([self.main_token.lemma_] + [t.lemma_ for t in self.modifier_tokens])
+	
+	@property
+	def pos_(self):
+		"""Renvoie la partie du discours du token principal"""
+		return self.main_token.pos_
+	
+	@property
+	def tag_(self):
+		"""Renvoie le tag du token principal"""
+		return self.main_token.tag_
+	
+	def __len__(self):
+		return len(self.text)
+	def __str__(self):
+		return self.text
 

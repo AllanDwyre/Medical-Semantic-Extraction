@@ -50,7 +50,7 @@ class WikiPageSearcher:
 	def _get_categories(self):
 		base = [
 			"Page utilisant P492",  "Page utilisant P699", "Page utilisant P557", 
-			"Page utilisant P3201",
+			"Page utilisant P3201", "Page utilisant P780",
 			"Médecine", "Maladie", "Anatomie humaine", "Physiologie", "Pharmacologie",
 			"Symptôme", "Diagnostic médical", "Traitement médical", "Chirurgie",
 			"Spécialité médicale", "Médecine d'urgence", "Pathologie",
@@ -59,7 +59,7 @@ class WikiPageSearcher:
 		]
 		recursive = [
 			"Page utilisant P492",  "Page utilisant P699", "Page utilisant P557", 
-			"Page utilisant P3201",
+			"Page utilisant P3201", "Page utilisant P780",
 			"Patient", "Classification utilisée en médecine", "Physiologie", "Dépistage et diagnostic",
 			"Génétique humaine", "Maladie", "Syndrome", "Traitement", "Terme médical", "Code ATC", "Sémiologie médicale",
 			"Médecine d'urgence", "Pathologie", "Spécialité en médecine", "Soins de santé", "Physiologie humaine", "Symptôme", "Diagnostic médical",
@@ -104,7 +104,7 @@ class WikiPageSearcher:
 						pages.append(member["title"])
 					elif member["ns"] == 14:
 						sub_name = member["title"].split("Catégorie:", 1)[-1]
-						if sub_name.lower() not in self.exclude_categories and "institut" not in sub_name.lower():
+						if sub_name.lower() not in self.exclude_categories and sub_name.lower() not in ["institut", "étude"]:
 							subcategories.append(sub_name)
 						# else:
 						# 	print_color(f"Catégorie exclu : {sub_name}", "debug")

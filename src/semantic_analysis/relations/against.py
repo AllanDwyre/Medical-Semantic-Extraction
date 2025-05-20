@@ -1,20 +1,21 @@
 from src.semantic_analysis.relations.base import BaseRelationExtractor
 from src.semantic_analysis.document import Relation, CompositeToken, BasicToken, Dependency, Token
 
-class SynonymeExtractor(BaseRelationExtractor):
-	relation_name = "r_syn"
+class AgainstExtractor(BaseRelationExtractor):
+	relation_name = "r_against"
 	
 	def extract(self, tree: Dependency, known_relations : list[Relation]) -> list[Relation] | None:
-		
-		if self._check_children_keys({'conj'}, tree):
-			objet = tree
+		if tree.token.pos_ != "VERB":
+			return None
 
-			sujet = tree.children['conj'][0]
-			pattern = sujet.children['cc'][0]
+		if self._check_children_keys({'nsubj', 'obj'}, tree):
 
-			if pattern.token.text.lower() != "ou":
-				return
-
+			sujet = tree.children['nsubj'][0]
+			pattern = tree # le verbe 'detruit' aussi
+			objet = tree.children['obj'][0]
+			
 			rel = self.create_relation(sujet, pattern, objet, self.relation_name)
+
 			return [rel]
 		return None
+	

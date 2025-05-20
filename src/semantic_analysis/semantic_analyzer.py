@@ -95,9 +95,12 @@ class SemanticAnalyzer:
 	#		- [x] Sauvegarde au fur et à mesure
 	# 	Analyse sémantique
 	#		- [x] Analyse complète de infobox (key analyse: pattern matching) --> tres simple et con
-	#		- [ ] Analyse complète de content (preprocessing, dep parsing, NER médicaliser, balise)
-	# 			- [ ] Dependency Parsing
-	# 			- [ ] POS
-	# 			- [ ] Rule-Matching classification -> 
-	# 			- [ ] Creation du NER médicalisé
+	#		- [x] Analyse complète de content (preprocessing, dep parsin, balise)
+	# 			- [x] Dependency Parsing
+	# 			- [x] POS
+	# 			- [x] Rule-Matching classification -> 
+	# 	Inférence pour evaluations des relations
+	#		- [ ] Importer le projet inférence
+	#		- [ ] Adapter le projet pour l'inférence de masse / Optimization
+	
 
