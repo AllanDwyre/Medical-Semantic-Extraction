@@ -1,6 +1,4 @@
-from src.semantic_analysis.relations.base import BaseRelationExtractor
-from src.semantic_analysis.document import Relation, CompositeToken, BasicToken, Dependency, Token
-
+from src.semantic_analysis.relations.base import BaseRelationExtractor, Relation, Dependency, BasicToken
 
 class HeritageExtractor(BaseRelationExtractor):
 

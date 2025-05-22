@@ -3,8 +3,6 @@ import json
 import sqlite3
 from sqlite3 import Cursor, Connection
 from dataclasses import dataclass, field 
-from spacy.tokens.token import Token
-from typing import Dict, List, Optional
 
 
 @dataclass
@@ -56,7 +54,6 @@ class Relation:
 			case "objet":
 				return (st_obj, end_obj)
 			
-
 @dataclass
 class ProcessedDocument:
 	info:				DocumentInfo
@@ -252,75 +249,3 @@ class ProcessedDocument:
 		''', (self.info.page_id, self.info.page_id)).fetchall()
 
 		return similar_pages
-
-
-@dataclass
-class Dependency:
-	token		: Token					= None
-	head		: Dependency			= None
-	children	: dict[str, list[Dependency]] = field(default_factory=dict)
-
-
-
-@dataclass
-class BasicToken:
-	text	: str
-	idx		: int
-	
-	def __len__(self):
-		return len(self.text)
-
-@dataclass
-class CompositeToken:
-	main_token		: Token
-	modifier_tokens	: List[Token]
-
-	_composite_word : str			= ""
-	
-	def _compute_text(self):
-		"""Calcule le texte complet du token composé"""
-		tokens = [self.main_token] + self.modifier_tokens
-		tokens.sort(key=lambda t: t.idx)
-		
-		return " ".join([t.text for t in tokens])
-	
-	@property
-	def idx(self):
-		return self.main_token.idx
-	
-	@property
-	def end_idx(self):
-		"""Position de fin = fin du dernier token (chronologiquement)"""
-		all_tokens = [self.main_token] + self.modifier_tokens
-		last_token = max(all_tokens, key=lambda t: t.idx)
-		return last_token.idx + len(last_token.text)
-
-	
-	@property
-	def text(self):
-		if(len(self._composite_word) > 0):
-			return self._composite_word
-		
-		self._composite_word =  self._compute_text()
-		return self._composite_word
-	
-	@property
-	def lemma_(self):
-		"""Renvoie le lemme composé"""
-		return " ".join([self.main_token.lemma_] + [t.lemma_ for t in self.modifier_tokens])
-	
-	@property
-	def pos_(self):
-		"""Renvoie la partie du discours du token principal"""
-		return self.main_token.pos_
-	
-	@property
-	def tag_(self):
-		"""Renvoie le tag du token principal"""
-		return self.main_token.tag_
-	
-	def __len__(self):
-		return len(self.text)
-	def __str__(self):
-		return self.text
-

@@ -1,18 +1,20 @@
-from src.semantic_analysis.relations.base import BaseRelationExtractor
-from src.semantic_analysis.document import Relation, CompositeToken, BasicToken, Dependency, Token
+from src.semantic_analysis.relations.base import BaseRelationExtractor, Relation, Dependency, PatternMatch, PatternBuilder
 
 
 class GenericExtractor(BaseRelationExtractor):
 	relation_name = "r_isa"
 	
-	def extract(self, tree: Dependency, known_relations : list[Relation]) -> list[Relation] | None:
-		
-		if self._check_children_keys({'nsubj', 'cop'}, tree):
-			objet = tree
-
-			sujet = tree.children['nsubj'][0]
-			pattern = tree.children['cop'][0]
-
-			rel = self.create_relation(sujet, pattern, objet, self.relation_name)
-			return [rel]
-		return None
+	rules = [
+		PatternMatch(
+			sujet = PatternBuilder().child_has_tag({'nsubj'}).build(),
+			pattern = PatternBuilder().child_has_tag({'cop'}).check_lemma({"être"}).build(),
+			objet = PatternBuilder().build(),
+		),
+		]
+	
+	def extract(self, tree: Dependency, known_relations : list[Relation], verbose = False) -> list[Relation] | None:
+		relations = []
+		for rule in self.rules:
+			sujet, pattern, objet = rule.match(tree, verbose)
+			self.create_relation(sujet, pattern, objet, self.relation_name, relations)
+		return relations

@@ -1,8 +1,10 @@
-from src.semantic_analysis.document import Relation, CompositeToken, BasicToken, Dependency, Token
+from src.semantic_analysis.document import Relation
+from src.semantic_analysis.pattern_matching import CompositeToken, BasicToken, Dependency, Token, PatternMatch, PatternBuilder
 
 class BaseRelationExtractor:
 	relation_name = "undefined"
 	relation_source = "content"
+
 
 	def _get_composite_words(self, tree: Dependency) -> CompositeToken | Token | BasicToken:
 		"""Extrait les mots composés formés par un nom et ses modificateurs adjectivaux ou nominaux, récursivement"""
@@ -26,8 +28,10 @@ class BaseRelationExtractor:
 			# pas de modificateurs, on retourne juste le token simple
 			return tree.token
 	
-	def create_relation(self, sujet: Dependency, pattern: Dependency, objet: Dependency, relation_type: str) -> Relation:
-		
+	def create_relation(self, sujet: Dependency, pattern: Dependency, objet: Dependency, relation_type: str, relations: list[Relation] = []) -> Relation:
+		if not sujet or not pattern or not objet:
+			return None
+
 		sujet_token 	: CompositeToken | Token | BasicToken	= self._get_composite_words(sujet)
 		objet_token 	: CompositeToken | Token | BasicToken	= self._get_composite_words(objet)
 		pattern_token 	: CompositeToken | Token | BasicToken	= self._get_composite_words(pattern)
@@ -46,8 +50,8 @@ class BaseRelationExtractor:
 			objet	= self._get_position(objet_token)
 		)
 
+		relations.append(rel)
 		return rel
-		
 
 	def _get_position(self, token: CompositeToken | Token) -> tuple[int,int]:
 		if isinstance(token, CompositeToken):
@@ -60,7 +64,7 @@ class BaseRelationExtractor:
 			return False
 		return keys.issubset(tree.children.keys())
 
-	def extract(self, tree: Dependency, known_relations : list[Relation]) -> list[Relation] | None:
+	def extract(self, tree: Dependency, known_relations : list[Relation], verbose=False) -> list[Relation] | None:
 		"""
 		Extrait les relations de la phrase pour une relation donnée.
 		"""

@@ -1,5 +1,6 @@
 import re
-from src.semantic_analysis.document import Relation, Dependency, Token, Dict
+from src.semantic_analysis.document import Relation
+from src.semantic_analysis.pattern_matching import Dependency
 
 from src.semantic_analysis.relations.base import BaseRelationExtractor
 from src.semantic_analysis.relations.isa import GenericExtractor
@@ -8,8 +9,7 @@ from src.semantic_analysis.relations.carac import CaracteristicExtractor
 from src.semantic_analysis.relations.heritage import HeritageExtractor
 from src.semantic_analysis.relations.role_telic import RoleTelicExtractor
 from src.semantic_analysis.relations.against import AgainstExtractor
-
-
+from rich import print
 
 class ContentAnalyzer:
 	def __init__(self, nlp_model, extractors : list[BaseRelationExtractor]= None):
@@ -31,7 +31,7 @@ class ContentAnalyzer:
 			return f"\n{match.group(1)}.\n"
 		return re.sub(pattern, clean ,text)
 	
-	def build_dependency_tree(self, sent) -> Dict[Token, Dependency]:
+	def build_dependency_tree(self, sent) -> Dependency:
 		"""Construit un arbre de dépendances pour une phrase."""
 		token_to_dep = {}
 		root = None
@@ -69,7 +69,7 @@ class ContentAnalyzer:
 			
 		return root
 	
-	def walk_tree(self, tree: Dependency, known_relations=None) -> list[Relation]:
+	def walk_tree(self, tree: Dependency, known_relations=None, verbose = False) -> list[Relation]:
 		results = []
 		known_relations = known_relations or []
 
@@ -77,7 +77,6 @@ class ContentAnalyzer:
 			return []
 		
 		for extractor in self.extractors:
-
 			rels = extractor.extract(tree, known_relations)
 			if rels:
 				results.extend(rels)
@@ -97,7 +96,7 @@ class ContentAnalyzer:
 		relations = []
 		for sent in doc.sents:
 			sent_root = self.build_dependency_tree(sent)
-			sent_relations = self.walk_tree(sent_root)
+			sent_relations = self.walk_tree(sent_root, verbose=verbose)
 			relations.extend(sent_relations)
 			if verbose:
 				print(f"[green bold]{sent}[/green bold]")
