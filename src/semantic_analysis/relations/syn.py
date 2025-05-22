@@ -10,6 +10,10 @@ class SynonymeExtractor(BaseRelationExtractor):
 			objet = tree
 
 			sujet = tree.children['conj'][0]
+
+			if 'cc' not in sujet.children:
+				return
+			
 			pattern = sujet.children['cc'][0]
 
 			if pattern.token.text.lower() != "ou":

@@ -8,7 +8,7 @@ class WikiContentExtractor:
 			'Références', 'Voir aussi', 'Liens externes', 'Lien externe', 'Bibliographie',
 			'Notes et références', 'Notes', "Sources de l'article", 'Articles connexes',
 			'Publications','Documentaire','Annexes','Biographie','Sources', 'Galerie',
-			'Articles'
+			'Articles', 'Historique'
 		}
 
 	def extract_sections(self, soup: BeautifulSoup) -> str:

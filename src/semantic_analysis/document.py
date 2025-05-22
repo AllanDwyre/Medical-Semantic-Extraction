@@ -36,15 +36,18 @@ class Relation:
 	start:			str = '' # only content source
 	end:			str = '' # only content source
 	source:			str = '' # infobox ou content
-	# TODO : Confidence score et avoir le normalized pattern++++ (important)
+	id:				int = -1
 
+	# TODO : confidence score + normalized pattern ? 
+	
 	def set_start_and_end(self, sujet : tuple[int,int], pattern: tuple[int,int], objet: tuple[int,int]) -> None:
-		self.start += sujet[0] + ";" + pattern[0] + ";" +  objet[0]
-		self.end += sujet[1] + ";" + pattern[1] + ";" +  objet[1]
+		self.start += f"{sujet[0]};{pattern[0]};{objet[0]}"
+		self.end   += f"{sujet[1]};{pattern[1]};{objet[1]}"
+		
 	def get_start_end(self, attribute:str) -> tuple[int,int]: 
 		"""Get the start & end of a attribute : (sujet, objet or pattern)"""
-		st_suj, st_rel, st_obj = self.start.split(';')
-		end_suj, end_rel, end_obj = self.end.split(';') 
+		st_suj, st_rel, st_obj = tuple(map(int, self.start.split(';')))
+		end_suj, end_rel, end_obj = tuple(map(int, self.end.split(';')))
 		match attribute:
 			case "sujet":
 				return (st_suj, end_suj)
@@ -52,6 +55,7 @@ class Relation:
 				return (st_rel, end_rel)
 			case "objet":
 				return (st_obj, end_obj)
+			
 
 @dataclass
 class ProcessedDocument:
@@ -125,8 +129,37 @@ class ProcessedDocument:
 				)
 
 			except Exception as e:
-				print(f"[ERREUR DB] {e} – relation: {rel}")
+				print(f"[ERREUR DB : infobox] {e} – relation: {rel}")
 
+		# Gerer les relations infobox pour la page
+		for rel in self.relation_content:
+			try:
+				source_id = get_or_create_keyword(rel.sujet)
+				target_id = get_or_create_keyword(rel.objet)
+				pattern_id = get_or_create_pattern(rel.pattern)
+				relation_type_id = get_relation_type_id(rel.relation_type)
+
+				# Ajouter la relation
+				cursor.execute(
+					"""
+					INSERT INTO relations (source_id, target_id, pattern_id, predicted_relation_type, confidence_score, source)
+					VALUES (?, ?, ?, ?, ?, ?)
+					""",
+					(source_id, target_id, pattern_id, relation_type_id, None, rel.source)
+				)
+				relation_id = cursor.lastrowid
+
+				# Lier la relation à la page
+				cursor.execute(
+					"""
+					INSERT INTO page_relations (page_id, relation_id, start_rel, end_rel)
+					VALUES (?, ?, ?, ?)
+					""",
+					(page_id, relation_id, rel.start, rel.end)
+				)
+
+			except Exception as e:
+				print(f"[ERREUR DB : content] {e} – relation: {rel}")
 		conn.commit()
 		conn.close()
 
@@ -135,10 +168,10 @@ class ProcessedDocument:
 		#		[x] enregistrer les keywords si il n'existent pas
 		#		[x] recupérer leur ids (gerer dans le cas qu'il existe déja)
 		#		[x] recupérer leur insérer leur relations sans les start et end
-		# [ ] Loop les relations content avec relation source = 'content'
-		#		[ ] enregistrer les keywords si il n'existent pas
-		#		[ ] recupérer leur ids (gerer dans le cas qu'il existe déja)
-		#		[ ] recupérer leur insérer leur relations
+		# [x] Loop les relations content avec relation source = 'content'
+		#		[x] enregistrer les keywords si il n'existent pas
+		#		[x] recupérer leur ids (gerer dans le cas qu'il existe déja)
+		#		[x] recupérer leur insérer leur relations
 		
 		# [ ] Ajouter les confidence score pour tout type de relation
 	
@@ -166,7 +199,7 @@ class ProcessedDocument:
 		# 2. Récupérer les relations liées à cette page
 		cursor.execute(
 			"""
-			SELECT k1.keyword, k2.keyword, rt.name, p.pattern, pr.start_rel, pr.end_rel, r.source
+			SELECT k1.keyword, k2.keyword, rt.name, p.pattern, pr.start_rel, pr.end_rel, r.source, r.id
 			FROM page_relations pr
 			JOIN relations r ON pr.relation_id = r.id
 			JOIN keywords k1 ON r.source_id = k1.id
@@ -179,7 +212,7 @@ class ProcessedDocument:
 		)
 
 		relations = []
-		for k1, k2, rel_type, pattern, start, end, source in cursor.fetchall():
+		for k1, k2, rel_type, pattern, start, end, source, id in cursor.fetchall():
 			relations.append(Relation(
 				sujet=k1,
 				objet=k2,
@@ -187,7 +220,8 @@ class ProcessedDocument:
 				pattern=pattern,
 				start=start,
 				end=end,
-				source=source
+				source=source,
+				id=id,
 			))
 
 		# 3. Séparer infobox / content (selon start/end vides ou non)
@@ -253,6 +287,14 @@ class CompositeToken:
 	@property
 	def idx(self):
 		return self.main_token.idx
+	
+	@property
+	def end_idx(self):
+		"""Position de fin = fin du dernier token (chronologiquement)"""
+		all_tokens = [self.main_token] + self.modifier_tokens
+		last_token = max(all_tokens, key=lambda t: t.idx)
+		return last_token.idx + len(last_token.text)
+
 	
 	@property
 	def text(self):

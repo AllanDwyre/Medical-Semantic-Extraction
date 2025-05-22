@@ -50,9 +50,14 @@ class BaseRelationExtractor:
 		
 
 	def _get_position(self, token: CompositeToken | Token) -> tuple[int,int]:
-		return (token.idx, token.idx + len(token.text))
+		if isinstance(token, CompositeToken):
+			return (token.idx, token.end_idx)
+		else:
+			return (token.idx, token.idx + len(token.text))
 
 	def _check_children_keys(self, keys: set, tree: Dependency) -> bool:
+		if tree is None or not hasattr(tree, 'children'):
+			return False
 		return keys.issubset(tree.children.keys())
 
 	def extract(self, tree: Dependency, known_relations : list[Relation]) -> list[Relation] | None:

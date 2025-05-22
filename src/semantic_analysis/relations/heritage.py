@@ -13,6 +13,9 @@ class HeritageExtractor(BaseRelationExtractor):
 
 			et_child_dep = tree.children['conj'][0]
 
+			if 'cc' not in et_child_dep.children:
+				return
+			
 			cc = et_child_dep.children['cc'][0]
 			if cc.token.text.lower() != "et":
 				return

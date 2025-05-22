@@ -91,6 +91,64 @@ pre {
 	font-size: 12px;
 }
 
+.highlight-term {
+	cursor: pointer;
+	padding: 2px 4px;
+	border-radius: 4px;
+	transition: all 0.2s ease;
+	position: relative;
+	font-weight: 500;
+	text-decoration: none;
+}
+
+/* --- État passif --- */
+.highlight-term:not(.highlighted):not([data-element-type="pattern"]) {
+	color: inherit;
+	border-bottom: 1px dotted rgba(100, 100, 100, 0.3);
+}
+
+/* Patterns : style discret mais visible */
+.highlight-term[data-element-type="pattern"] {
+	color: #888;
+	font-style: italic;
+	filter: brightness(0.8) saturate(.75);
+	border-bottom: 1px dashed rgba(150, 150, 150, 0.4);
+}
+
+/* --- Hover (optionnel) --- */
+.highlight-term:hover {
+	filter: brightness(1.1);
+}
+
+/* --- État actif (highlight) --- */
+.highlight-term.highlighted[data-element-type="sujet"] {
+	color: #1f77b4;
+	background-color: rgba(31, 119, 180, 0.1);
+	border-bottom: 2px solid #1f77b4;
+}
+
+.highlight-term.highlighted[data-element-type="objet"] {
+	color: #d62728;
+	background-color: rgba(214, 39, 40, 0.1);
+	border-bottom: 2px solid #d62728;
+}
+
+.highlight-term.highlighted[data-element-type="both"] {
+	color: #2ca02c;
+	background-color: rgba(44, 160, 44, 0.1);
+	border-bottom: 2px solid #2ca02c;
+}
+
+/* Highlight pour pattern actif */
+.highlight-term.highlighted[data-element-type="pattern"] {
+
+	color: var(--term-color, #9467bd);
+	background-color: color-mix(in srgb, var(--term-color,
+				#9467bd), white 80%);
+	filter: brightness(1) saturate(1);
+	border-bottom: 2px dashed var(--term-color, #9467bd);
+}
+
 /* MOTS-CLÉS HIGHLIGHT */
 .highlight {
 	cursor: pointer;

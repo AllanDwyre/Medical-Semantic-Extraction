@@ -31,7 +31,7 @@ def process_document(json_file_path):
 	try:
 		content_rel = content_analyzer.analyse_content(info.content)
 	except Exception as e:
-		return {"error": f"[CONTENT]", "file": info.title, "message": str(e).split("\n")[0]}
+		return {"error": f"[CONTENT]", "file": info.title, "message": str(e).split("\n")[0], "trace" : traceback.format_exc()}
 
 	try:
 		return ProcessedDocument(info, relation_infobox=infobox_rel, relation_content=content_rel)

@@ -12,6 +12,9 @@
 
 	<!-- Icônes Material Symbols Outlined -->
 	<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/vis-network.min.js"></script>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/vis-network.min.css" />
 </head>
 
 <body data-current-index="{{ page['page_id'] }}">
@@ -53,24 +56,11 @@
 
 			<h2>Contenu</h2>
 			<div id="content-container">
-				{% for par in page['content'].split('\n') %}
-				<p>{{ par | highlight_content(relation_content) | highlight_brackets | safe }}</p>
-				{% endfor %}
+				{{ page['content']| highlight_content(relation_content) | safe }}
 			</div>
 		</div>
 
 		<div class="sidebar">
-			<!-- <div class="card">
-				<h2>Mots-clés identifiés <span class="badge">{{ keywords|length }}</span></h2>
-				<div>
-					{% for kw in keywords %}
-					<div class="keyword-item" data-keyword="{{ kw['keyword'] }}">
-						{{ kw['keyword'] }}
-						<span class="badge">{{ "%.3f"|format(kw['frequency']) }}</span>
-					</div>
-					{% endfor %}
-				</div>
-			</div> -->
 			{% if similar_pages %}
 			<div class="card">
 				<h2>Pages similaires</h2>
@@ -84,9 +74,14 @@
 				</div>
 			</div>
 			{% endif %}
-
-
+			<!-- <div class="card" style="position: sticky;top: 20px;">
+				<h2>Information des highlights</h2>
+				<div class="relation__info">
+					<span></span>
+				</div>
+			</div> -->
 		</div>
+
 	</div>
 
 	<script src="{{url_for('static', filename='page_script.js')}}"></script>

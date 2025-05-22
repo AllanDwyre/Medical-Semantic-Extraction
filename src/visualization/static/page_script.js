@@ -11,39 +11,41 @@ document.addEventListener("DOMContentLoaded", function () {
 		}
 	});
 
-	// Context Viewer
-	const keywordItems = document.querySelectorAll('.keyword-item');
+	const terms = document.querySelectorAll('.highlight-term');
 
-	function highlightKeyword(keyword) {
-		// Désélectionner tous les mots
-		document.querySelectorAll('.highlight[data-selected="1"]').forEach(el => {
-			el.setAttribute('data-selected', '0');
-		});
+	let currentRelationIds = [];
 
-		// Sélectionner ceux qui correspondent
-		const matches = document.querySelectorAll('.highlight');
-		matches.forEach(el => {
-			if (el.textContent.toLowerCase() === keyword.toLowerCase())
-			{
-				el.setAttribute('data-selected', '1');
+	terms.forEach(term => {
+		term.addEventListener('click', function () {
+			// Get the clicked element's data-relation-id and split into an array
+			const relationIdAttr = this.getAttribute('data-relation-id');
+			const clickedIds = relationIdAttr.split('_');
+
+			// Check if current selection is the same as the clicked one
+			const isSameSelection = JSON.stringify(currentRelationIds) === JSON.stringify(clickedIds);
+
+			// Clear all existing highlights based on currentRelationIds
+			if (currentRelationIds.length > 0) {
+			document.querySelectorAll('.highlight-term').forEach(el => {
+				const elIds = el.getAttribute('data-relation-id').split('_');
+				if (elIds.some(id => currentRelationIds.includes(id))) {
+				el.classList.remove('highlighted');
+				}
+			});
 			}
-		});
 
-		const first = document.querySelector('.highlight[data-selected="1"]');
-		if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
-	}
+			// Update selection (clear if same, set to clicked if different)
+			currentRelationIds = isSameSelection ? [] : clickedIds;
 
-	keywordItems.forEach(item => {
-		item.addEventListener("click", () => {
-			const keyword = item.dataset.keyword;
-			highlightKeyword(keyword);
-		});
-	});
-
-	document.querySelectorAll('.highlight').forEach(el => {
-		el.addEventListener("click", () => {
-			const keyword = el.textContent;
-			highlightKeyword(keyword);
+			// Apply highlight if it’s a new selection
+			if (!isSameSelection) {
+			document.querySelectorAll('.highlight-term').forEach(el => {
+				const elIds = el.getAttribute('data-relation-id').split('_');
+				if (elIds.some(id => currentRelationIds.includes(id))) {
+				el.classList.add('highlighted');
+				}
+			});
+			}
 		});
 	});
 

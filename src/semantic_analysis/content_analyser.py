@@ -1,10 +1,10 @@
 import re
-from src.semantic_analysis.document import Relation, CompositeToken, BasicToken, Dependency, Token, Dict
+from src.semantic_analysis.document import Relation, Dependency, Token, Dict
 
 from src.semantic_analysis.relations.base import BaseRelationExtractor
 from src.semantic_analysis.relations.isa import GenericExtractor
 from src.semantic_analysis.relations.syn import SynonymeExtractor
-from src.semantic_analysis.relations.caract import CaracteristicExtractor
+from src.semantic_analysis.relations.carac import CaracteristicExtractor
 from src.semantic_analysis.relations.heritage import HeritageExtractor
 from src.semantic_analysis.relations.role_telic import RoleTelicExtractor
 from src.semantic_analysis.relations.against import AgainstExtractor
@@ -12,13 +12,24 @@ from src.semantic_analysis.relations.against import AgainstExtractor
 
 
 class ContentAnalyzer:
-	def __init__(self, nlp_model):
+	def __init__(self, nlp_model, extractors : list[BaseRelationExtractor]= None):
+		"""
+		Le nlp_model permet de chercher dans une langue précise.
+		Le extractors est surtout utilisé pour les tests unitaire car il permet de récupérer uniquement les relations attendus 
+		"""
 		self.nlp = nlp_model
 		self.rejected_pos = ("PUNCT", "DET")
-		self.extractors: list[BaseRelationExtractor] = [GenericExtractor(), SynonymeExtractor(), CaracteristicExtractor(), HeritageExtractor(), RoleTelicExtractor(), AgainstExtractor() ]
+		self.extractors: list[BaseRelationExtractor] = extractors or [GenericExtractor(), SynonymeExtractor(), CaracteristicExtractor(), HeritageExtractor(), RoleTelicExtractor(), AgainstExtractor() ]
 
-	def _extract_marked_entities(text):
-		return re.findall(r"\[([^\[\]]+)\]", text)
+	def remove_brackets(self, text):
+		return re.sub(r"\[([^\[\]]+)\]", r"\1", text)
+	
+	def clean_titles(self, text):
+		""" Rajoute un point a chaque titre pour ne pas détruire le dep parsing"""
+		pattern = r'\n([A-Z][^\n\.]*)\n'
+		def clean(match : re.Match):
+			return f"\n{match.group(1)}.\n"
+		return re.sub(pattern, clean ,text)
 	
 	def build_dependency_tree(self, sent) -> Dict[Token, Dependency]:
 		"""Construit un arbre de dépendances pour une phrase."""
@@ -62,7 +73,11 @@ class ContentAnalyzer:
 		results = []
 		known_relations = known_relations or []
 
+		if tree is None:
+			return []
+		
 		for extractor in self.extractors:
+
 			rels = extractor.extract(tree, known_relations)
 			if rels:
 				results.extend(rels)
@@ -75,7 +90,10 @@ class ContentAnalyzer:
 		return results
 	
 	def analyse_content(self, content: str, verbose = False) -> list[Relation]:
-		doc = self.nlp(content)
+		cleaned_content = self.clean_titles(content)
+		cleaned_content = self.remove_brackets(cleaned_content)
+		doc = self.nlp(cleaned_content)
+		
 		relations = []
 		for sent in doc.sents:
 			sent_root = self.build_dependency_tree(sent)

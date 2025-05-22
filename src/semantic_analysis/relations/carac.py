@@ -2,7 +2,7 @@ from src.semantic_analysis.relations.base import BaseRelationExtractor
 from src.semantic_analysis.document import Relation, CompositeToken, BasicToken, Dependency, Token
 
 class CaracteristicExtractor(BaseRelationExtractor):
-	relation_name = "r_caract"
+	relation_name = "r_carac"
 	
 	def extract(self, tree: Dependency, known_relations : list[Relation]) -> list[Relation] | None:
 		"""
