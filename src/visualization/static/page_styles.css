@@ -101,6 +101,7 @@ pre {
 	text-decoration: none;
 }
 
+
 /* --- État passif --- */
 .highlight-term:not(.highlighted):not([data-element-type="pattern"]) {
 	color: inherit;
@@ -326,4 +327,57 @@ pre {
 .result-item a:hover,
 .result-item a:active {
 	color: black;
+}
+
+
+/* Le bouton toggle */
+.toggle-btn {
+	border: 1px solid #ccc;
+	padding: 6px 12px;
+	cursor: pointer;
+	color: #333;
+	background-color: #f9f9f9;
+	transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+	font-size: 0.9rem;
+	margin-left: -1px;
+	/* pour coller les boutons sans double bordure */
+	position: relative;
+	z-index: 1;
+}
+
+.toggle-btn:first-child {
+	border-top-left-radius: 8px;
+	border-bottom-left-radius: 8px;
+	margin-left: 0;
+	z-index: 2;
+}
+
+.toggle-btn:last-child {
+	border-top-right-radius: 8px;
+	border-bottom-right-radius: 8px;
+}
+
+.toggle-btn:hover {
+	background-color: #eaeaea;
+}
+
+.toggle-btn.selected {
+	background-color: #333;
+	color: #fff;
+	border-color: #333;
+	z-index: 3;
+}
+
+.toggle-btn.selected:hover {
+	background-color: #585858;
+}
+
+/* Pour le graph */
+
+#relation-graph text {
+	user-select: none;
+	/* Empêche la sélection du texte */
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
 }

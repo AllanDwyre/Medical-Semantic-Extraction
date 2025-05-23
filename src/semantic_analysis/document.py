@@ -56,6 +56,19 @@ class Relation:
 			
 	def __str__(self):
 		return f"{self.sujet} → {self.relation_type} → {self.objet}"
+	
+	def to_dict(self):
+		return {
+			"pattern": self.pattern,
+			"relation_type": self.relation_type,
+			"sujet": self.sujet,
+			"objet": self.objet,
+			"start": self.start,
+			"end": self.end,
+			"source": self.source,
+			"id": self.id
+		}
+	
 @dataclass
 class ProcessedDocument:
 	info:				DocumentInfo

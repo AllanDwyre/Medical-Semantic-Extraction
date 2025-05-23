@@ -42,11 +42,14 @@ def page(page_id):
 	except Exception as e:
 			return str(e), 404
 	
+	relation_content_json = [rel.to_dict() for rel in document.relation_content]
+
 	conn.close()
 	return render_template('page.html', 
 							page= document.info,
 							relation_infobox = document.relation_infobox,
 							relation_content= document.relation_content,
+							relation_content_json=relation_content_json,
 							similar_pages=similar_pages)
 @app.route('/search')
 def search():

@@ -17,7 +17,7 @@
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/vis-network.min.css" />
 </head>
 
-<body data-current-index="{{ page['page_id'] }}">
+<body data-current-index="{{ page['page_id'] }}" data-relation-content='{{ relation_content_json | tojson | safe }}'>
 
 	<div class="topbar">
 		<div class="nav-links">
@@ -54,9 +54,28 @@
 			</div>
 			{% endif %}
 
-			<h2>Contenu</h2>
+			<div class="content-header" style="display: flex; align-items: center; justify-content: space-between;">
+				<h2>Contenu</h2>
+				<div id="view-toggle" style="display: flex; gap: 0rem; font-size: 0.9rem;">
+					<button class="toggle-btn selected" data-view="original">original</button>
+					<button class="toggle-btn" data-view="list">list</button>
+					<button class="toggle-btn" data-view="graph">graph</button>
+				</div>
+			</div>
 			<div id="content-container">
-				{{ page['content']| highlight_content(relation_content) | safe }}
+				<div id="original-view">
+					{{ page['content']| highlight_content(relation_content) | safe }}
+				</div>
+				<div id="list-view" style="display: none;">
+					<ul>
+						{% for rel in relation_content %}
+						<li><b>{{ rel.sujet }}</b> {{ rel.relation_type }} <b>{{ rel.objet }}</b></li>
+						{% endfor %}
+					</ul>
+				</div>
+				<div id="graph-view" style="display: none;">
+					<svg id="relation-graph" width="100%" height="600px"></svg>
+				</div>
 			</div>
 		</div>
 
@@ -86,6 +105,177 @@
 
 	<script src="{{url_for('static', filename='page_script.js')}}"></script>
 	<script src="{{ url_for('static', filename='search.js') }}"></script>
+	<script src="https://d3js.org/d3.v7.min.js"></script>
+	<script>
+		function drawGraph(relations) {
+			const svg = d3.select("#relation-graph");
+			svg.selectAll("*").remove();  // clear previous drawing
+
+			// Attendre que l'élément soit visible et ait des dimensions
+			const svgNode = svg.node();
+			if (!svgNode)
+			{
+				console.error("SVG element not found");
+				return;
+			}
+
+			// Forcer des dimensions minimales si pas de dimensions
+			let width = svgNode.clientWidth || svgNode.getBoundingClientRect().width;
+			let height = svgNode.clientHeight || svgNode.getBoundingClientRect().height;
+
+			if (width === 0) width = 800;  // fallback
+			if (height === 0) height = 600; // fallback
+
+			console.log("SVG dimensions:", width, height);
+
+			// Définir les marges pour garder les nœuds dans le cadre
+			const nodeRadius = 15;
+			const margin = nodeRadius + 5;
+
+			// Construire les nœuds uniques (sujets + objets)
+			const nodesMap = new Map();
+			relations.forEach(r => {
+				nodesMap.set(r.sujet, { id: r.sujet });
+				nodesMap.set(r.objet, { id: r.objet });
+			});
+			const nodes = Array.from(nodesMap.values());
+
+			// Initialiser les positions au centre
+			nodes.forEach(d => {
+				d.x = width / 2;
+				d.y = height / 2;
+			});
+
+			// Les liens sont les relations
+			const links = relations.map(r => ({
+				source: r.sujet,
+				target: r.objet,
+				type: r.relation_type
+			}));
+
+			console.log("Nodes:", nodes.length, "Links:", links.length);
+
+			// Créer la simulation de force
+			const simulation = d3.forceSimulation(nodes)
+				.force("link", d3.forceLink(links).id(d => d.id).distance(150))
+				.force("charge", d3.forceManyBody().strength(-10))
+				.force("center", d3.forceCenter(width / 2, height / 2))
+				// Ajouter une force de contrainte pour garder les nœuds dans le cadre
+				.force("collision", d3.forceCollide().radius(nodeRadius + 2));
+
+			// Dessiner les liens
+			const link = svg.append("g")
+				.attr("stroke", "#999")
+				.attr("stroke-opacity", 0.6)
+				.selectAll("line")
+				.data(links)
+				.join("line")
+				.attr("stroke-width", 2);
+
+			// Ajouter le texte des types de relation sur les liens
+			const linkLabels = svg.append("g")
+				.selectAll("text")
+				.data(links)
+				.join("text")
+				.text(d => d.type)
+				.attr("font-size", 10)
+				.attr("fill", "#555");
+
+			// Dessiner les nœuds
+			const node = svg.append("g")
+				.attr("stroke", "#fff")
+				.attr("stroke-width", 1.5)
+				.selectAll("circle")
+				.data(nodes)
+				.join("circle")
+				.attr("r", nodeRadius)
+				.attr("fill", "#69b3a2")
+				.call(drag(simulation));
+
+			// Ajouter labels aux nœuds
+			const labels = svg.append("g")
+				.selectAll("text")
+				.data(nodes)
+				.join("text")
+				.text(d => d.id)
+				.attr("font-size", 12)
+				.attr("dy", "-1.2em")
+				.attr("text-anchor", "middle");
+
+			simulation.on("tick", () => {
+				// Contraindre les positions des nœuds dans le cadre SVG
+				// mais seulement pour les nœuds qui ne sont pas en cours de drag
+				nodes.forEach(d => {
+					if (!d.fx && !d.fy)
+					{ // Seulement si pas de position fixe (pas en drag)
+						d.x = Math.max(margin, Math.min(width - margin, d.x));
+						d.y = Math.max(margin, Math.min(height - margin, d.y));
+					}
+				});
+
+				link
+					.attr("x1", d => d.source.x)
+					.attr("y1", d => d.source.y)
+					.attr("x2", d => d.target.x)
+					.attr("y2", d => d.target.y);
+
+				linkLabels
+					.attr("x", d => (d.source.x + d.target.x) / 2)
+					.attr("y", d => (d.source.y + d.target.y) / 2);
+
+				node
+					.attr("cx", d => d.x)
+					.attr("cy", d => d.y);
+
+				labels
+					.attr("x", d => d.x)
+					.attr("y", d => d.y);
+			});
+
+			// Fonction drag avec contraintes
+			function drag(simulation) {
+				function dragstarted(event, d) {
+					if (!event.active) simulation.alphaTarget(0.3).restart();
+					d.fx = d.x;
+					d.fy = d.y;
+				}
+
+				function dragged(event, d) {
+					// Contraindre la position pendant le drag
+					d.fx = Math.max(margin, Math.min(width - margin, event.x));
+					d.fy = Math.max(margin, Math.min(height - margin, event.y));
+				}
+
+				function dragended(event, d) {
+					if (!event.active) simulation.alphaTarget(0);
+					d.fx = null;
+					d.fy = null;
+				}
+
+				return d3.drag()
+					.on("start", dragstarted)
+					.on("drag", dragged)
+					.on("end", dragended);
+			}
+		}
+
+		// Lorsque la vue 'graph' est activée, appeler drawGraph avec les données
+		document.querySelectorAll("#view-toggle .toggle-btn").forEach(button => {
+			button.addEventListener("click", () => {
+				if (button.getAttribute("data-view") === "graph")
+				{
+					// Attendre un peu que l'affichage change
+					setTimeout(() => {
+						console.log("Switching to graph view");
+						console.log(document.body.dataset.relationContent);
+						const relations = JSON.parse(document.body.dataset.relationContent);
+						drawGraph(relations);
+					}, 100);
+				}
+			});
+		});
+	</script>
+
 </body>
 
 </html>

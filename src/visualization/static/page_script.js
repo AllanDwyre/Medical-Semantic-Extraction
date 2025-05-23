@@ -11,6 +11,27 @@ document.addEventListener("DOMContentLoaded", function () {
 		}
 	});
 
+	
+	document.querySelectorAll("#view-toggle .toggle-btn").forEach(button => {
+		button.addEventListener("click", () => {
+		// Désélectionner tous les boutons
+		document.querySelectorAll("#view-toggle .toggle-btn").forEach(btn => btn.classList.remove("selected"));
+		// Sélectionner celui cliqué
+		button.classList.add("selected");
+
+		const selectedView = button.getAttribute("data-view");
+
+		// Cacher toutes les vues
+		document.querySelectorAll("#content-container > div").forEach(div => {
+			div.style.display = "none";
+		});
+
+		// Afficher la vue sélectionnée
+		document.getElementById(`${selectedView}-view`).style.display = "block";
+		});
+	});
+
+
 	const terms = document.querySelectorAll('.highlight-term');
 
 	let currentRelationIds = [];
