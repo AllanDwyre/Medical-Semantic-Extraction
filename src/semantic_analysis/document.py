@@ -54,6 +54,8 @@ class Relation:
 			case "objet":
 				return (st_obj, end_obj)
 			
+	def __str__(self):
+		return f"{self.sujet} → {self.relation_type} → {self.objet}"
 @dataclass
 class ProcessedDocument:
 	info:				DocumentInfo

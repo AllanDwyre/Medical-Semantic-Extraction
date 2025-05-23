@@ -9,6 +9,9 @@ from src.semantic_analysis.relations.carac import CaracteristicExtractor
 from src.semantic_analysis.relations.heritage import HeritageExtractor
 from src.semantic_analysis.relations.role_telic import RoleTelicExtractor
 from src.semantic_analysis.relations.against import AgainstExtractor
+from src.semantic_analysis.relations.conseq import ConsequenceExtractor
+from src.semantic_analysis.relations.cause import CauseExtractor
+
 from rich import print
 
 class ContentAnalyzer:
@@ -18,9 +21,12 @@ class ContentAnalyzer:
 		Le extractors est surtout utilisé pour les tests unitaire car il permet de récupérer uniquement les relations attendus 
 		"""
 		self.nlp = nlp_model
-		self.rejected_pos = ("PUNCT", "DET")
-		self.extractors: list[BaseRelationExtractor] = extractors or [GenericExtractor(), SynonymeExtractor(), CaracteristicExtractor(), HeritageExtractor(), RoleTelicExtractor(), AgainstExtractor() ]
+		self.rejected_pos = ()
+		self.extractors: list[BaseRelationExtractor] = extractors or [GenericExtractor(), SynonymeExtractor(), CaracteristicExtractor(), HeritageExtractor(), RoleTelicExtractor(), AgainstExtractor(), ConsequenceExtractor(), CauseExtractor() ]
 
+	def normalize_hyphenated_names(self, text):
+		return re.sub(r"(?<=\w)-(?=\w)", "_", text)
+	
 	def remove_brackets(self, text):
 		return re.sub(r"\[([^\[\]]+)\]", r"\1", text)
 	
@@ -77,19 +83,22 @@ class ContentAnalyzer:
 			return []
 		
 		for extractor in self.extractors:
-			rels = extractor.extract(tree, known_relations)
+			rels = extractor.extract(tree, known_relations, verbose)
 			if rels:
 				results.extend(rels)
 				known_relations.extend(rels)
 
 		for children in tree.children.values():
 			for child in children:
-				results.extend(self.walk_tree(child, known_relations))
+				results.extend(self.walk_tree(child, known_relations, verbose))
 
 		return results
 	
 	def analyse_content(self, content: str, verbose = False) -> list[Relation]:
 		cleaned_content = self.clean_titles(content)
+		# cleaned_content = self.normalize_hyphenated_names(content)
+		# TODO :		[ ] faire une association r_wiki entre le titre et les mots dans les brackets, ou peut être 
+		# TODO :			récupérer la liste des mots en gras et faire une association dynamique avec dep parsing ?
 		cleaned_content = self.remove_brackets(cleaned_content)
 		doc = self.nlp(cleaned_content)
 		

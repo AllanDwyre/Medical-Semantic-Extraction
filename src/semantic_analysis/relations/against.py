@@ -7,7 +7,7 @@ class AgainstExtractor(BaseRelationExtractor):
 		PatternMatch(
 			sujet = PatternBuilder().child_has_tag({'nsubj'}).build(),
 			objet = PatternBuilder().child_has_tag({'obj'}).build(),
-			pattern = PatternBuilder().check_pos({'VERB'}).build(),
+			pattern = PatternBuilder().check_pos({'VERB'}).check_lemma({'contre'}).build(),
 		),
 		]
 	

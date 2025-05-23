@@ -23,17 +23,21 @@ class Dependency:
 	def __str__(self):
 		return self.afficher_arbre()
 	
-	def has_tags(self, *labels):
+	def has_tags(self, *labels:str):
 		"""retourne vrai si il a tout les labels (xcomp, ...)"""
 		return all(label in self.children for label in labels)
 	
-	def get_children(self, label):
+	def get_children(self, label:str):
 			"""retourne tout les dependance qui on ce label"""
 			return self.children[label] if label in self.children else None
 	
-	def get_child(self, label, index = 0):
+	def get_child(self, label:str, index = 0):
 		"""retourne la dependance à l'index qui on ce label"""
 		return self.children[label][index] if label in self.children else None
+	
+	def check_lemma(self, lemma:str) -> bool:
+		"""retourne la dependance à l'index qui on ce label"""
+		return self.token.lemma_ == lemma
 
 
 class PatternMatchException(Exception):
@@ -54,6 +58,7 @@ class PatternCondition:
 	validator: Callable[[Any], List[Dependency]]
 	required: bool = True
 	description: str = ""
+	step_name: Optional[str] = None
 
 
 
@@ -86,21 +91,41 @@ class PatternBuilder:
 			return match_level(nodes, 0)
 
 		description = " -> ".join(f"[{','.join(t)}]" for t in tag_levels)
-		self.conditions.append(PatternCondition(validator, description=f"has_tag path {description}"))
+		self.conditions.append(PatternCondition(validator, description=f"n'a pas de tag avec ce chemin {description}", step_name= "has_tag"))
 		return self
 	
 	def check_pos(self, possible_pos: Set[str]):
+		"""Le mot actuelle est un des possible POS. {'VERB', 'NOUN'} veut dire que le mot est soit un verbe soit un nom.
+			Si on met {'not VERB'} c'est qu'il est tout sauf un VERB (parfait lorsque on connais pas toute les possibilité)
+		"""
+		negative_pos = [pos[4:] for pos in possible_pos if pos.startswith("not ")]
+		positive_pos = [pos for pos in possible_pos if not pos.startswith("not ")]
+
 		def validator(nodes: List[Dependency]) -> List[Dependency]:
-			return [node for node in nodes if node.token.pos_ in possible_pos]
+			return [
+				node for node in nodes
+				if (not positive_pos or node.token.pos_ in positive_pos) and
+				(not negative_pos or node.token.pos_ not in negative_pos)
+			]
 			
 		self.conditions.append(PatternCondition(validator, description=f"has no childrens with this pos {possible_pos}"))
 		return self
 	
 	def check_lemma(self, possible_lemma: Set[str]):
+		"""Le mot actuelle est un des possible LEMMA. {'designer', 'etre'} veut dire que la racine du mot est soit designer soit etre.
+			Si on met {'not etre'} c'est qu'il est tout sauf la racine 'etre' (parfait lorsque on connais pas toute les possibilité)
+		"""
+		negative_lemma = [lemma[4:] for lemma in possible_lemma if lemma.startswith("not ")]
+		positive_lemma = [lemma for lemma in possible_lemma if not lemma.startswith("not ")]
+
 		def validator(nodes: List[Dependency]) -> List[Dependency]:
-			return [node for node in nodes if node.token.lemma_ in possible_lemma]
+			return [
+				node for node in nodes
+				if (not positive_lemma or node.token.lemma_ in positive_lemma) and
+				(not negative_lemma or node.token.lemma_ not in negative_lemma)
+			]
 			
-		self.conditions.append(PatternCondition(validator, description=f"has no childrens with this lemma {possible_lemma}"))
+		self.conditions.append(PatternCondition(validator, description=f"has no childrens with this lemma {possible_lemma}", step_name= "check_lemma"))
 		return self
 	
 	def start_from(self, starter_point : str):
@@ -117,7 +142,8 @@ class PatternBuilder:
 		return self
 	
 
-	def add__custom(self):
+	def add__custom(self, condition : PatternCondition):
+		self.conditions.append(condition)
 		return self
 	
 
@@ -131,19 +157,27 @@ class Pattern:
 
 	def find(self, node: Dependency):
 		nodes = [node]
-		for cond in self.conditions:
+		for i, cond in enumerate(self.conditions):
+			before = nodes
 			nodes = cond.validator(nodes)
+
 			if not nodes:
-				raise PatternMatchException(message=cond.description)
-		if nodes:
-			return nodes[0]
-		return None
+				context = ", ".join(f"{n.token.text}({n.token.pos_}, {n.token.dep_})" for n in before)
+				message = (
+					f"[{cond.step_name or 'unknown'}] Step {i}: {cond.description} "
+					f"on nodes: {context}"
+				)
+				raise PatternMatchException(message=message)
+			
+		return nodes[0] if nodes else None
+
 
 @dataclass
 class PatternMatch:
-	sujet: Pattern
-	pattern: Pattern
-	objet: Pattern
+	sujet		: Pattern
+	pattern		: Pattern
+	objet		: Pattern
+	match_name	: Optional[str] = "matcher"
 
 	def match(self, tree: Dependency, verbose=False) -> tuple[Dependency, Dependency, Dependency]:
 		node = {"sujet": None, "pattern": None, "objet": None}
@@ -176,7 +210,7 @@ class PatternMatch:
 
 		except PatternMatchException as e:
 			if verbose:
-				print_color(f"[DEBUG] Erreur lors du match : {e}", "debug")
+				print_color(f"<{self.match_name}> <{key}> {e}", "debug")
 			return None, None, None
 
 		except Exception as e:
@@ -204,11 +238,17 @@ class PatternMatch:
 
 @dataclass
 class BasicToken:
-	text	: str
-	idx		: int
+	text		: str
+	idx			: int
+	end_idx		: int
 	
 	def __len__(self):
 		return len(self.text)
+	
+	@property
+	def lemma_(self):
+		"""Renvoie le text car un token basic est un token déja sauvegardé donc sous forme de lemma"""
+		return self.text
 
 @dataclass
 class CompositeToken:

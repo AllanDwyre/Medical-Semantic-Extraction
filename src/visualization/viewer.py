@@ -226,7 +226,8 @@ def highlight_content(content: str, relations: list[Relation]):
 
 		duplicates[key] = len(fragments) - 1
 		last_end = end
-		
+	fragments.append(content[last_end:])	
+	
 	highlighted_content = ''.join(fragments)
 	
 	for term in bold_texts:

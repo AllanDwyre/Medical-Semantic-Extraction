@@ -1,19 +1,16 @@
 from src.semantic_analysis.relations.base import BaseRelationExtractor, Relation, Dependency, PatternMatch, PatternBuilder
 
 
-class GenericExtractor(BaseRelationExtractor):
-	relation_name = "r_isa"
+class CauseExtractor(BaseRelationExtractor):
+	relation_name = "r_has_causatif"
 	
+	lemma_pattern = {'devoir'}
+
 	rules = [
 		PatternMatch(
 			sujet = PatternBuilder().child_has_tag({'nsubj'}).check_pos({'NOUN'}).build(),
-			pattern = PatternBuilder().child_has_tag({'cop'}).check_lemma({"être"}).build(),
-			objet = PatternBuilder().check_pos({'NOUN'}).build(),
-		),
-		PatternMatch(
-			sujet = PatternBuilder().child_has_tag({'nsubj'}).check_pos({'NOUN'}).build(),
-			pattern = PatternBuilder().child_has_tag({'cop'}).check_lemma({"être"}).build(),
-			objet = PatternBuilder().check_pos({'PRON'}).child_has_tag({'nmod'}).check_pos({'NOUN'}).build(),
+			pattern = PatternBuilder().check_lemma(lemma_pattern).build(),
+			objet = PatternBuilder().child_has_tag({'obj', 'obl:arg'}).build(),
 		),
 		]
 	

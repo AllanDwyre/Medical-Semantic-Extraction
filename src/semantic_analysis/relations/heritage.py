@@ -2,32 +2,45 @@ from src.semantic_analysis.relations.base import BaseRelationExtractor, Relation
 
 class HeritageExtractor(BaseRelationExtractor):
 
-	def extract(self, tree: Dependency, known_relations : list[Relation]) -> list[Relation] | None:
+	def _get_element_from_rel(self, new_term, rel_term, parent_term, pos):
+		# Pour illuster : 	rel_term	= "changement dans la colonne"
+		#					parent_term = "colonne"
+		#					rel_term	= "bassin"
+		#					
+		#					On va donc regarder si "colonne" est dans "changement dans la colonne"
+
+		if parent_term in rel_term:
+			return new_term
+		
+		return BasicToken(rel_term, int(pos[0]), int(pos[1]))
+
+	def extract(self, tree: Dependency, known_relations : list[Relation], verbose = False) -> list[Relation] | None:
 		if tree.head is None:
 			return None
 		
-		if self._check_children_keys({'conj'}, tree):
-			parent = tree
+		parent = tree
+		term = tree.get_child('conj')
+		if not term:
+			return [] 
+		
+		cc = term.get_child('cc')
+		if not cc or not cc.check_lemma("et"):
+			return []
+		
+		infered_rels = [rel for rel in known_relations if rel.sujet == parent.token.text or rel.objet == parent.token.text]
+		relations = []
 
-			et_child_dep = tree.children['conj'][0]
+		for infered_rel in infered_rels:	
+				sujet_pos = infered_rel.get_start_end("sujet")
+				objet_pos = infered_rel.get_start_end("sujet")
+				pattern_pos = infered_rel.get_start_end("pattern")
 
-			if 'cc' not in et_child_dep.children:
-				return
-			
-			cc = et_child_dep.children['cc'][0]
-			if cc.token.text.lower() != "et":
-				return
-			
-			infered_rels = [rel for rel in known_relations if rel.sujet == parent.token.text or rel.objet == parent.token.text]
-			relations = []
-			for infered_rel in infered_rels:
-				sujet = et_child_dep if infered_rel.sujet == parent.token.text else BasicToken(infered_rel.sujet, int(infered_rel.get_start_end("sujet")[0]))
-				objet = et_child_dep if infered_rel.objet == parent.token.text else BasicToken(infered_rel.objet, int(infered_rel.get_start_end("objet")[0]))
-				pattern = BasicToken(infered_rel.pattern, int(infered_rel.get_start_end("pattern")[0]))
+				sujet = self._get_element_from_rel(term, infered_rel.sujet, parent.token.text, sujet_pos)
+				objet = self._get_element_from_rel(term, infered_rel.objet, parent.token.text, objet_pos)
+				pattern = self._get_element_from_rel(term, infered_rel.pattern, parent.token.text, pattern_pos)
 				
 				
 				rel = self.create_relation(sujet, pattern, objet, infered_rel.relation_type)
 				relations.append(rel)
 
-			return relations
-		return None
+		return relations
