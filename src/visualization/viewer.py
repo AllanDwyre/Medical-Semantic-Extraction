@@ -8,6 +8,9 @@ import re
 import hashlib
 import colorsys
 import html
+import src.semantic_analysis.content_analyser as analyser
+import src.utils.helper as helper
+from spacy import displacy
 
 app = Flask(
 	__name__,
@@ -16,6 +19,7 @@ app = Flask(
 # Configuration
 DB_PATH = "database/medical_knowledge.db"
 PROCESSED_DATA_PATH = "data/processed/_visualization_data.json"
+nlp = helper.load_nlp_model()
 
 def get_db_connection() -> sqlite3.Connection:
 	"""Établir une connexion à la base de données SQLite."""
@@ -82,6 +86,110 @@ def search():
 		for row in filtered_result
 	])
 
+@app.route('/tool')
+def tool():
+	"""Permet de travailler les patterns"""
+	text = request.args.get('texte', '')
+
+	doc = nlp(text)
+	dependency_html = displacy.render(doc, style="dep", page=False)
+
+	return render_template('tool.html', text=text, dependency_html=dependency_html)
+
+@app.template_filter('tokenize_interactive')
+def tokenize_interactive(text: str):
+	doc = nlp(text)
+	html = ""
+
+	for token in doc:
+		if token.text.strip() == "":
+			html += token.text  # conserve les espaces
+		else:
+			html += (
+				f'<span class="token" data-state="none" onclick="cycleTokenState(this)" data-pos="{token.i}">'
+				f'{token.text}</span>'
+			)
+
+	return html
+
+def get_path(ancestors: list[analyser.Dependency]) -> list[dict]:
+	"""
+	Transforme une liste d'ancêtres en une liste JSON-friendly
+	avec des infos essentielles pour chaque noeud.
+	"""
+	path = []
+	# for node in ancestors:
+	#     # Exemple d'attributs à extraire du token et du noeud
+	#     path.append({
+	#         "text": node.token.text if node.token else None,
+	#         "index": node.token.i if node.token else None,
+	#         "dep": node.token.dep_ if node.token else None,
+	#     })
+	return " -> ".join(f"({node.token.pos_}) {node.token.dep_}" for node in ancestors)
+
+def formalize_path(paths: dict[str, str]) -> dict[str, str]:
+	last_segments = {}
+	for key, path in paths.items():
+		segments = [seg.strip() for seg in path.split('->')]
+		last_segments[key] = segments[-1] if segments else ''
+
+	result = {}
+
+	for key, path in paths.items():
+		segments = [seg.strip() for seg in path.split('->')]
+
+		for other_key, last_seg in last_segments.items():
+			if other_key != key and segments[0] == last_seg:
+				segments[0] = other_key
+				break
+
+		result[key] = ' -> '.join(segments)
+	return result
+
+
+
+	
+@app.route('/search_pattern')
+def search_pattern():
+	pos = list(map(int, request.args.get('pos', '').strip().split(',')))
+	if not pos:
+		return jsonify([])
+	sujet_pos, pattern_pos, objet_pos = pos
+	text = request.args.get('text', '').strip()
+	if not text:
+		return jsonify([])
+
+	processed_text = nlp(text)
+	content_analyser = analyser.ContentAnalyzer(nlp_model=nlp, extractors=[])
+	tree = content_analyser.build_dependency_tree(processed_text)
+
+	sujet	: analyser.Dependency = tree.search_in_tree(lambda n: n.token.i == sujet_pos)[0]
+	pattern	: analyser.Dependency = tree.search_in_tree(lambda n: n.token.i == pattern_pos)[0]
+	objet	: analyser.Dependency = tree.search_in_tree(lambda n: n.token.i == objet_pos)[0]
+
+	sujet_ancestors		: list[analyser.Dependency] = sujet.get_ancestor_chain(stop_at= (pattern, objet))
+	pattern_ancestors	: list[analyser.Dependency] = pattern.get_ancestor_chain(stop_at= (sujet, objet))
+	objet_ancestors		: list[analyser.Dependency] = objet.get_ancestor_chain(stop_at= (pattern, sujet))
+
+	# Si le la root des ancetres n'est pas un autre des mots chercher, alors on trouve leur encetre commun : 
+	if sujet_ancestors[0].head == None: 
+		sujet_ancestors = sujet.get_ancestor_chain(stop_at=[sujet.find_lca_three(pattern, objet)])
+
+	if pattern_ancestors[0].head == None: 
+		pattern_ancestors = pattern.get_ancestor_chain(stop_at=[pattern.find_lca_three(sujet, objet)])
+
+	if objet_ancestors[0].head == None: 
+		objet_ancestors = objet.get_ancestor_chain(stop_at=[objet.find_lca_three(sujet, pattern)])
+
+	sujet_path = get_path(sujet_ancestors)
+	pattern_path = get_path(pattern_ancestors)
+	objet_path = get_path(objet_ancestors)
+
+	return jsonify(formalize_path({"sujet": sujet_path, "pattern": pattern_path, "objet": objet_path}))
+
+
+
+
 @app.template_filter('highlight_infobox')
 def highlight_infobox(infobox : dict, relations : list[Relation]):
 	
@@ -143,16 +251,16 @@ def get_color_for_relation(relation_type):
 	return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
 
 def ajouter_relation_id(match: re.Match, id: int):
-    ancien = match.group(1)
-    nouveau = f'{ancien}_{id}'
-    return f'data-relation-id="{nouveau}"'
+	ancien = match.group(1)
+	nouveau = f'{ancien}_{id}'
+	return f'data-relation-id="{nouveau}"'
 
 
 def ajouter_relation(match: re.Match, rel: str):
-    ancien = match.group(1)
-    rel = html.escape(rel)
-    nouveau = f'{ancien} | {rel}'
-    return f'<span class="tooltip">{nouveau}</span>'
+	ancien = match.group(1)
+	rel = html.escape(rel)
+	nouveau = f'{ancien} | {rel}'
+	return f'<span class="tooltip">{nouveau}</span>'
 
 def remove_brackets(text):
 	return re.findall(r"\[([^\[\]]+)\]", text), re.sub(r"\[([^\[\]]+)\]", r"\1", text)
@@ -163,6 +271,7 @@ def clean_titles(text):
 	def clean(match : re.Match):
 		return f"\n{match.group(1)}.\n"
 	return re.findall(pattern, text) , re.sub(pattern, clean ,text)
+
 
 
 @app.template_filter('highlight_content')
@@ -261,6 +370,7 @@ def highlight_content(content: str, relations: list[Relation]):
 		final = re.sub(pattern, r'<h2 style="font-weight: 500;">\1</h2>', final, flags=re.IGNORECASE)
 
 	return final
+
 
 def launch_localhost(debug=False):
 	app.run(debug=debug)

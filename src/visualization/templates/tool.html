@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Tooling - Analyse Sémantique</title>
+	<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+	<link rel="stylesheet" href="{{ url_for('static', filename='tool_style.css') }}">
+	<!-- Police Inter -->
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+	<!-- Icônes Material Symbols Outlined -->
+	<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/vis-network.min.js"></script>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/vis-network.min.css" />
+</head>
+
+<body>
+	<div class="topbar">
+		<div class="nav-links">
+			<a href="{{ url_for('index') }}" title="Page précédente"><span class="material-symbols-outlined">
+					home
+				</span></a>
+		</div>
+		<form class="searchbar-inline" method="get" action="/search">
+			<input type="text" name="q" placeholder="Rechercher une page ou un mot-clé...">
+		</form>
+	</div>
+	<div id="search-results" class="search-results"></div>
+
+	<div class="container">
+		<div class="main-content">
+			<h1>Tooling - analyse de pattern</h1>
+			<p class="simple"><i>La selection des pattern ce fait en choissant un mot pour chaque type (sujet, pattern,
+					objet). Si
+					c'est un mot composé, on chosisi le nom.</i></p>
+
+			<form method="get" action="/tool" class="tool-form">
+				<input type="text" name="texte" placeholder="Entrez du texte à analyser" value="{{ texte }}">
+				<button type="submit">
+					<span class="material-symbols-outlined">search</span>
+					<span>Analyser le texte</span>
+				</button>
+			</form>
+
+			<small id="text">{{ text | safe }}</small>
+			<h3>Cliquer pour selectionner le sujet, pattern et objet</h3>
+			<div>
+				<p>{{ text | tokenize_interactive | safe }}</p>
+			</div>
+			<div id="dependency-tree" style="overflow-x: auto;">
+				{{ dependency_html | safe }}
+			</div>
+			<button id="analyze-button" onclick="analyzeSelectedPatterns()">🔍 Analyser les patterns
+				sélectionnés</button>
+			<div id="pattern-results"></div>
+
+		</div>
+
+		<div class="sidebar">
+			<div class="card">
+				<h2>Légende</h2>
+
+				<p class="simple" style="display: flex; align-items: center; gap: 8px;">
+					<span
+						style="display: inline-block; width: 20px; height: 15px; border-radius: 3px; background-color: #1f77b4;"></span>
+					Sujet
+				</p>
+
+				<p class="simple" style="display: flex; align-items: center; gap: 8px;">
+					<span
+						style="display: inline-block; width: 20px; height: 15px; border-radius: 3px; background-color: #9467bd;"></span>
+					Pattern
+				</p>
+
+				<p class="simple" style="display: flex; align-items: center; gap: 8px;">
+					<span
+						style="display: inline-block; width: 20px; height: 15px; border-radius: 3px; background-color: #d62728;"></span>
+					Objet
+				</p>
+			</div>
+
+
+		</div>
+	</div>
+
+
+	<script src="{{ url_for('static', filename='search.js') }}"></script>
+	<script src="{{ url_for('static', filename='tool_script.js') }}"></script>
+	<script>
+		function cycleTokenState(elem) {
+			const allStates = ['sujet', 'pattern', 'objet'];
+			let current = elem.getAttribute('data-state') || 'none';
+
+			// Obtenir les rôles déjà pris par d'autres mots
+			const takenStates = Array.from(document.querySelectorAll('[data-state]'))
+				.filter(el => el !== elem && allStates.includes(el.getAttribute('data-state')))
+				.map(el => el.getAttribute('data-state'));
+
+			// Construire la liste des états disponibles pour ce mot
+			const availableStates = allStates.filter(state => !takenStates.includes(state));
+			const cycle = [...availableStates, 'none'];
+
+			// Trouver l'état suivant
+			let currentIndex = cycle.indexOf(current);
+			let nextIndex = (currentIndex + 1) % cycle.length;
+			let nextState = cycle[nextIndex];
+
+			// Appliquer l'état suivant
+			elem.setAttribute('data-state', nextState);
+		}
+	</script>
+
+
+
+
+</body>
+
+</html>

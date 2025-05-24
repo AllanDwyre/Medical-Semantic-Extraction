@@ -381,3 +381,29 @@ pre {
 	-moz-user-select: none;
 	-ms-user-select: none;
 }
+
+/* Pour le bouton de search-tool */
+
+#rippleButton {
+	display: none;
+	position: fixed;
+	font-size: 1rem;
+	bottom: 30px;
+	right: 50%;
+	padding: 13px 15px;
+	color: black;
+	background-color: white;
+	border: none;
+	border-radius: 8px;
+	cursor: pointer;
+	box-shadow: 0 0px 10px 5px rgba(146, 205, 245, 0.5);
+	overflow: hidden;
+	z-index: 9999;
+	transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+#rippleButton.show {
+	display: block;
+	opacity: 1;
+	transform: translateY(0);
+}

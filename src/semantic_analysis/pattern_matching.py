@@ -38,6 +38,57 @@ class Dependency:
 	def check_lemma(self, lemma:str) -> bool:
 		"""retourne la dependance à l'index qui on ce label"""
 		return self.token.lemma_ == lemma
+	
+	def search_in_tree(self: Dependency, match_fn) -> list[Dependency]:
+		results = []
+		if match_fn(self):
+			results.append(self)
+
+		for children_list in self.children.values():
+			for child in children_list:
+				results.extend(child.search_in_tree(match_fn))
+		
+		return results
+	
+	def get_ancestor_chain(self: Dependency, stop_at: list[Dependency] = []) -> list[Dependency]:
+		chain = []
+		while self.head not in (self, None) and self not in stop_at:
+			chain.append(self)
+			self = self.head
+		chain.append(self)
+		return list(reversed(chain))
+
+	def find_lca_three(t1: Dependency, t2: Dependency, t3: Dependency) -> Dependency:
+		"""Lowest common ancestor for three nodes"""
+		a1 = t1.get_ancestor_chain()
+		a2 = t2.get_ancestor_chain()
+		a3 = t3.get_ancestor_chain()
+		
+		min_len = min(len(a1), len(a2), len(a3))
+		
+		lca = None
+		for i in range(min_len):
+			if a1[i] == a2[i] == a3[i]:
+				lca = a1[i]
+			else:
+				break
+		return lca
+	
+	def to_dict(self, with_children = True):
+		return {
+			"token": {
+				"text": self.token.text,
+				"lemma": self.token.lemma_,
+				"pos": self.token.pos_,
+				"dep": self.token.dep_,
+				"index": self.token.i,
+			} if self.token else None,
+			
+			"children": {
+				label: [child.to_dict() for child in children]
+				for label, children in self.children.items()
+			} if with_children else None
+		}
 
 
 class PatternMatchException(Exception):

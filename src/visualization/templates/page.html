@@ -103,13 +103,68 @@
 
 	</div>
 
+	<button id="rippleButton">Analyser la selection</button>
+
+
 	<script src="{{url_for('static', filename='page_script.js')}}"></script>
 	<script src="{{ url_for('static', filename='search.js') }}"></script>
+	<script>
+		let selectedText = "";
+		const button = document.getElementById("rippleButton");
+		const originalView = document.getElementById("original-view");
+
+		document.addEventListener("selectionchange", () => {
+			const selection = window.getSelection();
+			const selectedString = selection.toString().trim();
+
+			if (
+				selectedString.length > 0 &&
+				isInOriginalView(selection)
+			)
+			{
+				selectedText = selectedString;
+				button.classList.add("show");
+			} else
+			{
+				selectedText = "";
+				button.classList.remove("show");
+			}
+		});
+
+		button.addEventListener("click", () => {
+			if (selectedText)
+			{
+				const encodedText = encodeURIComponent(selectedText);
+				window.open(`/tool?texte=${encodedText}`, "_blank");
+			}
+		});
+
+		function isInOriginalView(selection) {
+			if (!selection.anchorNode || !selection.focusNode) return false;
+			return (
+				originalView.contains(selection.anchorNode) &&
+				originalView.contains(selection.focusNode)
+			);
+		}
+
+	</script>
 	<script src="https://d3js.org/d3.v7.min.js"></script>
 	<script>
 		function drawGraph(relations) {
 			const svg = d3.select("#relation-graph");
 			svg.selectAll("*").remove();  // clear previous drawing
+
+			svg.append("defs").append("marker")
+				.attr("id", "arrow")
+				.attr("viewBox", "0 -5 10 10")
+				.attr("refX", 22)  // distance depuis le nœud
+				.attr("refY", 0)
+				.attr("markerWidth", 6)
+				.attr("markerHeight", 6)
+				.attr("orient", "auto")
+				.append("path")
+				.attr("d", "M0,-5L10,0L0,5")
+				.attr("fill", "#999");
 
 			// Attendre que l'élément soit visible et ait des dimensions
 			const svgNode = svg.node();
@@ -170,7 +225,8 @@
 				.selectAll("line")
 				.data(links)
 				.join("line")
-				.attr("stroke-width", 2);
+				.attr("stroke-width", 2)
+				.attr("marker-end", "url(#arrow)");
 
 			// Ajouter le texte des types de relation sur les liens
 			const linkLabels = svg.append("g")

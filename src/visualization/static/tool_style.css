@@ -1,0 +1,359 @@
+body {
+	font-family: 'Inter', sans-serif;
+	margin: 40px auto;
+	max-width: 1200px;
+	padding: 0 20px;
+	background-color: #f9f9f9;
+	color: #333;
+}
+
+h1 {
+	font-size: 32px;
+	font-weight: 600;
+	margin-bottom: 10px;
+}
+
+h2 {
+	font-size: 20px;
+	font-weight: 600;
+	margin-top: 30px;
+	margin-bottom: 10px;
+}
+
+a:link {
+	text-decoration: none;
+}
+
+a:visited {
+	text-decoration: none;
+}
+
+ul {
+	margin-left: 0;
+	padding-left: 0;
+}
+
+/* STRUCTURE */
+.container {
+	display: flex;
+	gap: 30px;
+	flex-wrap: wrap;
+}
+
+.main-content {
+	flex: 3;
+	min-width: 0;
+}
+
+.sidebar {
+	flex: 1;
+	min-width: 250px;
+}
+
+.card {
+	background-color: #fafafa;
+	border: 1px solid #ddd;
+	border-radius: 10px;
+	padding: 10px 16px;
+	margin-bottom: 20px;
+}
+
+/* TEXT CONTENT */
+p {
+	white-space: pre-wrap;
+	line-height: 1.6;
+	margin-bottom: 1.2em;
+}
+
+p.simple {
+	white-space: initial;
+	line-height: 1.6;
+	margin-bottom: 1.2em;
+}
+
+li {
+	line-height: 1.6;
+	letter-spacing: 0.03em;
+	margin-left: 2rem;
+}
+
+pre {
+	background-color: #fff;
+	border: 1px solid #ddd;
+	padding: 12px;
+	border-radius: 8px;
+	white-space: pre-wrap;
+	margin-top: 10px;
+}
+
+/* BADGE */
+.badge {
+	display: inline-block;
+	background-color: #eee;
+	color: #333;
+	padding: 3px 8px;
+	margin: 2px;
+	border-radius: 6px;
+	font-size: 12px;
+}
+
+/* TOP BAR: NAVIGATION + SEARCH */
+.topbar {
+	display: flex;
+	align-items: center;
+	margin-bottom: 30px;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.nav-links a {
+	display: inline-block;
+	text-decoration: none;
+	font-size: 18px;
+	color: #444;
+	background-color: #fafafa;
+	border: 1px solid #ccc;
+	padding: 6px 12px;
+	border-radius: 8px;
+	transition: background-color 0.2s, box-shadow 0.2s;
+	cursor: pointer;
+}
+
+.nav-links a:hover {
+	background-color: #ddd;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.searchbar-inline input[type="text"] {
+	padding: 10px 14px;
+	border: 1px solid #ccc;
+	border-radius: 8px;
+	font-size: 15px;
+	background-color: #fafafa;
+	color: #333;
+	width: 350px;
+	transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.searchbar-inline input[type="text"]:focus {
+	outline: none;
+	border-color: #999;
+	box-shadow: 0 0 0 2px rgba(160, 160, 160, 0.1);
+}
+
+/* Search Result items */
+
+.search-results {
+	max-height: 400px;
+	overflow-y: auto;
+	margin-top: 10px;
+}
+
+.result-item {
+	cursor: pointer;
+	padding: 10px;
+	border-bottom: 1px solid #eee;
+	transition: background-color 0.2s;
+}
+
+.result-item:hover {
+	background-color: #f0f0f0;
+}
+
+.result-item a {
+	color: black;
+	text-decoration: none;
+}
+
+.result-item a:visited,
+.result-item a:hover,
+.result-item a:active {
+	color: black;
+}
+
+
+/* Le bouton toggle */
+.toggle-btn {
+	border: 1px solid #ccc;
+	padding: 6px 12px;
+	cursor: pointer;
+	color: #333;
+	background-color: #f9f9f9;
+	transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+	font-size: 0.9rem;
+	margin-left: -1px;
+	/* pour coller les boutons sans double bordure */
+	position: relative;
+	z-index: 1;
+}
+
+.toggle-btn:first-child {
+	border-top-left-radius: 8px;
+	border-bottom-left-radius: 8px;
+	margin-left: 0;
+	z-index: 2;
+}
+
+.toggle-btn:last-child {
+	border-top-right-radius: 8px;
+	border-bottom-right-radius: 8px;
+}
+
+.toggle-btn:hover {
+	background-color: #eaeaea;
+}
+
+.toggle-btn.selected {
+	background-color: #333;
+	color: #fff;
+	border-color: #333;
+	z-index: 3;
+}
+
+.toggle-btn.selected:hover {
+	background-color: #585858;
+}
+
+/* TOKEN */
+
+.token {
+	cursor: pointer;
+	user-select: none;
+	padding: 2px 4px;
+	border-radius: 4px;
+	transition: background-color 0.3s ease;
+}
+
+.token[data-state="sujet"] {
+	color: #1f77b4;
+	background-color: rgba(31, 119, 180, 0.1);
+	border-bottom: 2px solid #1f77b4;
+}
+
+.token[data-state="objet"] {
+	color: #d62728;
+	background-color: rgba(214, 39, 40, 0.1);
+	border-bottom: 2px solid #d62728;
+}
+
+.token[data-state="pattern"] {
+	background-color: rgba(148, 103, 189, .1);
+	color: #9467bd;
+	border-bottom: 2px dashed #9467bd;
+}
+
+/* Formulaire pour le text */
+
+.tool-form {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 24px;
+	padding: 12px;
+	background-color: #f9f9f9;
+	border-radius: 12px;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.tool-form input[type="text"] {
+	flex: 1;
+	padding: 10px 16px;
+	border: 1px solid #ddd;
+	border-radius: 8px;
+	font-size: 16px;
+	font-family: 'Inter', sans-serif;
+	transition: border-color 0.3s ease;
+}
+
+.tool-form input[type="text"]:focus {
+	outline: none;
+	border-color: #2196f3;
+	box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+}
+
+.tool-form button {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 10px 18px;
+	background-color: #2196f3;
+	color: white;
+	border: none;
+	border-radius: 8px;
+	cursor: pointer;
+	font-size: 16px;
+	font-weight: 600;
+	font-family: 'Inter', sans-serif;
+	transition: background-color 0.3s ease, box-shadow 0.2s ease;
+}
+
+.tool-form button:hover {
+	background-color: #1976d2;
+	box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+/* Button analyse */
+
+#analyze-button {
+	margin: 15px 0;
+	padding: 10px 20px;
+	background: #007bff;
+	color: white;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 14px;
+}
+/* Pattern Results */
+
+#pattern-results {
+	margin-top: 20px;
+	padding: 20px;
+	background: #f8f9fa;
+	border-radius: 8px;
+	border: 1px solid #dee2e6;
+}
+
+.pattern-block {
+	background: white;
+	padding: 15px;
+	border-radius: 6px;
+	margin: 10px 0;
+}
+
+.path-container {
+	margin: 10px 0;
+	padding: 10px;
+	background: #f8f9fa;
+	border-radius: 4px;
+}
+
+.path-item {
+	margin: 8px 0;
+	padding: 15px;
+	font-family: monospace;
+	border-left: 5px solid;
+}
+
+.path-item.sujet {
+	background-color: #e3f2fdb1;
+	border-color: #e3f2fd;
+}
+
+.path-item.objet {
+	background-color: #e8f5e8b1;
+	border-color: #e8f5e8;
+}
+
+.path-item.autre {
+	background-color: #f3e5f5b1;
+	border-color: #f3e5f5;
+}
+
+.rule-item {
+	margin: 8px 0;
+	padding: 8px;
+	background: #fff3cd;
+	border-left: 4px solid #ffc107;
+	font-family: monospace;
+}
