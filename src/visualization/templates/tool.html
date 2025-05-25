@@ -48,7 +48,7 @@
 			<small id="text">{{ text | safe }}</small>
 			<h3>Cliquer pour selectionner le sujet, pattern et objet</h3>
 			<div>
-				<p>{{ text | tokenize_interactive | safe }}</p>
+				<p style="display:flex; flex-wrap: wrap;">{{ text | tokenize_interactive | safe }}</p>
 			</div>
 			<div id="dependency-tree" style="overflow-x: auto;">
 				{{ dependency_html | safe }}

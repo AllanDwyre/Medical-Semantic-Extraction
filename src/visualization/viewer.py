@@ -117,14 +117,6 @@ def get_path(ancestors: list[analyser.Dependency]) -> list[dict]:
 	Transforme une liste d'ancêtres en une liste JSON-friendly
 	avec des infos essentielles pour chaque noeud.
 	"""
-	path = []
-	# for node in ancestors:
-	#     # Exemple d'attributs à extraire du token et du noeud
-	#     path.append({
-	#         "text": node.token.text if node.token else None,
-	#         "index": node.token.i if node.token else None,
-	#         "dep": node.token.dep_ if node.token else None,
-	#     })
 	return " -> ".join(f"({node.token.pos_}) {node.token.dep_}" for node in ancestors)
 
 def formalize_path(paths: dict[str, str]) -> dict[str, str]:
@@ -272,7 +264,13 @@ def clean_titles(text):
 		return f"\n{match.group(1)}.\n"
 	return re.findall(pattern, text) , re.sub(pattern, clean ,text)
 
-
+@app.errorhandler(Exception)
+def handle_exception(e):
+    import traceback
+    print("Une erreur est survenue :", e)
+    traceback.print_exc()
+    # Retourner un message simple ou une page custom
+    return f"Erreur interne : {e}", 500
 
 @app.template_filter('highlight_content')
 def highlight_content(content: str, relations: list[Relation]):
@@ -376,6 +374,15 @@ def launch_localhost(debug=False):
 	app.run(debug=debug)
 
 if __name__ == '__main__':
-	launch_localhost(True)
+	import argparse
+	parser = argparse.ArgumentParser(description="Lance l'analyse sémantique.")
+	parser.add_argument(
+		"--debug", "-D",
+		action="store_true",
+		help="Activer le mode debug (pas de suppression de la DB, logs supplémentaires)"
+	)
+
+	args = parser.parse_args()
+	launch_localhost(args.debug)
 	open_localhost()
 	
