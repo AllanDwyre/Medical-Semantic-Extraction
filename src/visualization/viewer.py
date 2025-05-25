@@ -11,6 +11,7 @@ import html
 import src.semantic_analysis.content_analyser as analyser
 import src.utils.helper as helper
 from spacy import displacy
+from rich import print as rprint
 
 app = Flask(
 	__name__,
@@ -258,23 +259,15 @@ def remove_brackets(text):
 	return re.findall(r"\[([^\[\]]+)\]", text), re.sub(r"\[([^\[\]]+)\]", r"\1", text)
 
 def clean_titles(text):
-	""" Rajoute un point a chaque titre pour ne pas détruire le dep parsing"""
+	"""Rajoute un point a chaque titre pour ne pas détruire le dep parsing"""
 	pattern = r'\n([A-Z][^\n\.]*)\n'
 	def clean(match : re.Match):
 		return f"\n{match.group(1)}.\n"
 	return re.findall(pattern, text) , re.sub(pattern, clean ,text)
 
-@app.errorhandler(Exception)
-def handle_exception(e):
-    import traceback
-    print("Une erreur est survenue :", e)
-    traceback.print_exc()
-    # Retourner un message simple ou une page custom
-    return f"Erreur interne : {e}", 500
-
 @app.template_filter('highlight_content')
 def highlight_content(content: str, relations: list[Relation]):
-	titles, content = clean_titles(content)
+	titles, _ = clean_titles(content)
 	bold_texts, content = remove_brackets(content)
 
 	elements_to_highlight = []
@@ -292,9 +285,8 @@ def highlight_content(content: str, relations: list[Relation]):
 	elements_to_highlight.sort(key=lambda x: (x[0], -x[1]))
 
 	fragments = []
-	last_end = 0
+	last_end = last_fragment_index = 0
 
-	duplicates = dict()
 	
 	rel : Relation
 	for (start, end, term, relation_type, element_type, relation_id, rel) in elements_to_highlight:
@@ -303,21 +295,18 @@ def highlight_content(content: str, relations: list[Relation]):
 		alt_title = f"{html.escape(rel.sujet)} {html.escape(rel.relation_type)} {html.escape(rel.objet)}"
 
 
-		key = (start, end)
-		if key in duplicates:
-			fragments[duplicates[key]] = re.sub(
-				r'data-relation-id="([^"]+)"',
-				lambda match: ajouter_relation_id(match, relation_id),
-				fragments[duplicates[key]]
-			)
-
-			fragments[duplicates[key]] = re.sub(
+		if end <= last_end:
+			fragments[last_fragment_index] = re.sub(
 				r'<span class="tooltip">([^<]+)</span>',
 				lambda match: ajouter_relation(match, alt_title),
-				fragments[duplicates[key]]
+				fragments[last_fragment_index]
 			)
-			
-			last_end = end
+
+			fragments[last_fragment_index] = re.sub(
+				r'data-relation-id="([^"]+)"',
+				lambda match: ajouter_relation_id(match, relation_id),
+				fragments[last_fragment_index]
+			)
 			continue
 
 		color = get_color_for_relation(relation_type)
@@ -333,16 +322,13 @@ def highlight_content(content: str, relations: list[Relation]):
 			f'<span class="tooltip">{alt_title}</span>'
 			f'</span>'
 		)
-
-		duplicates[key] = len(fragments) - 1
+		last_fragment_index = len(fragments) - 1
 		last_end = end
 	fragments.append(content[last_end:])	
 	
 	highlighted_content = ''.join(fragments)
 	
-	for term in bold_texts:
-		pattern = r'\b(' + re.escape(term) + r')\b'
-		highlighted_content = re.sub(pattern, r'<b style="font-weight: 600;">\1</b>', highlighted_content, flags=re.IGNORECASE)
+	
 
 	# On separe le texte par des paragraphes et formate les listes
 	final = ""
@@ -364,9 +350,12 @@ def highlight_content(content: str, relations: list[Relation]):
 		final += "</ul>"
 
 	for title in titles:
-		pattern = r'<p>(' + re.escape(title) + r')\.</p>'
+		pattern = r'<p>(' + re.escape(title) + r')</p>' # \.
 		final = re.sub(pattern, r'<h2 style="font-weight: 500;">\1</h2>', final, flags=re.IGNORECASE)
 
+	for term in bold_texts:
+		pattern = r'\b(' + re.escape(term) + r')\b'
+		final = re.sub(pattern, r'<b style="font-weight: 600;">\1</b>', final, flags=re.IGNORECASE)
 	return final
 
 
