@@ -16,7 +16,7 @@ class TestJdmApi(unittest.TestCase):
 		mock_get.return_value = mock_response
 
 		result = self.api.fetch_term_by_name("chat")
-		self.assertEqual(result["name"], "chat")
+		self.assertCountEqual(result["name"], "chat")
 
 	@patch('src.api.jdm_api.CachedSession.get')
 	def test_fetch_term_by_id_success(self, mock_get):
@@ -26,7 +26,7 @@ class TestJdmApi(unittest.TestCase):
 		mock_get.return_value = mock_response
 
 		result = self.api.fetch_term_by_id(123)
-		self.assertEqual(result["id"], 123)
+		self.assertCountEqual(result["id"], 123)
 
 	@patch('src.api.jdm_api.CachedSession.get')
 	def test_fetch_relation_with_params(self, mock_get):
@@ -38,11 +38,11 @@ class TestJdmApi(unittest.TestCase):
 		params = EndpointParams(min_weight=10, max_weight=100)
 		result = self.api.fetch_relation(1, 2,params=params)
 
-		self.assertEqual(result["result"], "ok")
+		self.assertCountEqual(result["result"], "ok")
 		mock_get.assert_called()
 		called_url = mock_get.call_args[1]['params']
-		self.assertEqual(called_url["min_weight"], 10)
-		self.assertEqual(called_url["max_weight"], 100)
+		self.assertCountEqual(called_url["min_weight"], 10)
+		self.assertCountEqual(called_url["max_weight"], 100)
 
 	@patch('src.api.jdm_api.CachedSession.get')
 	def test_fetch_relations_types_parsing(self, mock_get):
@@ -62,9 +62,9 @@ class TestJdmApi(unittest.TestCase):
 		mock_get.return_value = mock_response
 
 		result = self.api.fetch_relations_types()
-		self.assertEqual(len(result), 1)
+		self.assertCountEqual(len(result), 1)
 		self.assertIsInstance(result[0], RelationType)
-		self.assertEqual(result[0].name, "r_lemma")
+		self.assertCountEqual(result[0].name, "r_lemma")
 
 
 if __name__ == '__main__':

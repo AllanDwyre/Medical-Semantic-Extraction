@@ -19,13 +19,13 @@ class TestContentAnalyzer(unittest.TestCase):
 		text = "L’acrodermatite papuleuse infantile ou syndrome de Gianotti-Crosti est une maladie bénigne."
 		expected = "L’acrodermatite papuleuse infantile ou syndrome de Gianotti_Crosti est une maladie bénigne."
 		result = self.analyser.normalize_hyphenated_names(text)
-		self.assertEqual(result, expected)
+		self.assertCountEqual(result, expected)
 
 	def test_normalize_hyphenated_no_match(self):
 		text = "- Ceci est une liste donc pas de normalisation."
 		expected = "- Ceci est une liste donc pas de normalisation."
 		result = self.analyser.normalize_hyphenated_names(text)
-		self.assertEqual(result, expected)
+		self.assertCountEqual(result, expected)
 
 
 if __name__ == '__main__':

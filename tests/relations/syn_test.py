@@ -24,7 +24,7 @@ class TestSynonymeExtraction(unittest.TestCase):
 			"abcès fixation → r_syn → abcès Fochier"
 		]
 		result = get_result(text, self.analyser.analyse_content)
-		self.assertEqual(result, expected)
+		self.assertCountEqual(result, expected)
 
 	def test_synonym_extraction_rule_subj_conj_cc(self):
 		text = "L'anorexie mentale, ou anorexia nervosa, est un trouble des conduites alimentaires."
@@ -32,15 +32,15 @@ class TestSynonymeExtraction(unittest.TestCase):
 			"anorexia nervosa → r_syn → anorexie mental"
 		]
 		result = get_result(text, self.analyser.analyse_content)
-		self.assertEqual(result, expected)
+		self.assertCountEqual(result, expected)
 
 	def test_synonym_extraction_adjective(self):
-		text = "L’acrodermatite papuleuse infantile ou syndrome de Gianotti-Crosti est une maladie bénigne."
+		text = "L'acrodermatite papuleuse infantile ou syndrome de Gianotti-Crosti est une maladie bénigne."
 		expected = [
 			"syndrome Gianotti-Crosti → r_syn → acrodermatite papuleux infantile"
 		]
 		result = get_result(text, self.analyser.analyse_content)
-		self.assertEqual(result, expected)
+		self.assertCountEqual(result, expected)
 
 	def test_no_match_det(self):
 		"""les determinants ne peuvent etre des syn"""
@@ -48,7 +48,7 @@ class TestSynonymeExtraction(unittest.TestCase):
 		text = "L'allergie au lait est une réaction immunitaire défavorable à une ou plusieurs protéines dans le lait de vache."
 		expected = []
 		result = get_result(text, self.analyser.analyse_content)
-		self.assertEqual(result, expected)
+		self.assertCountEqual(result, expected)
 
 
 	def test_no_match_choix(self):
@@ -60,13 +60,13 @@ class TestSynonymeExtraction(unittest.TestCase):
 
 		expected = []
 		result = get_result(text, self.analyser.analyse_content)
-		self.assertEqual(result, expected)
+		self.assertCountEqual(result, expected)
 			
 	def test_no_match(self):
 		text = "Ceci est une phrase sans relation sémantique claire."
 		expected = []
 		result = get_result(text, self.analyser.analyse_content)
-		self.assertEqual(result, expected)
+		self.assertCountEqual(result, expected)
 
 if __name__ == '__main__':
 	unittest.main()

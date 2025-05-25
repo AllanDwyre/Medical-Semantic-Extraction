@@ -40,7 +40,5 @@ class HeritageExtractor(BaseRelationExtractor):
 				pattern = self._get_element_from_rel(term, infered_rel.pattern, parent.token.text, pattern_pos)
 				
 				
-				rel = self.create_relation(sujet, pattern, objet, infered_rel.relation_type)
-				relations.append(rel)
-
+				self.create_relation(sujet, pattern, objet, infered_rel.relation_type, relations)
 		return relations

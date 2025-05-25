@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 import unittest
 from src.semantic_analysis.pattern_matching import CompositeToken
 from src.semantic_analysis.content_analyser import BaseRelationExtractor, ContentAnalyzer, Dependency 
-from src.utils.helper import load_nlp_model
+from src.utils.helper import load_nlp_model, get_result
 from rich import print as rprint
 
 def get_composite_result(words, composite_callback, return_index = 1):
@@ -83,6 +83,24 @@ class TestBase(unittest.TestCase):
 		
 		self.assertCountEqual(result, expected)
 
+	def test_creation_relations(self):
+		text = "L'acrodermatite papuleuse infantile ou syndrome de Gianotti_Crosti est une maladie bénigne."
+		tree = self.analyser.build_dependency_tree(self.nlp(text))
+
+
+		sujet = tree.search_in_tree(lambda dep : dep.token.text == 'acrodermatite' )[0]
+		objet = tree.search_in_tree(lambda dep : dep.token.text == 'syndrome' )[0]
+		pattern = tree.search_in_tree(lambda dep : dep.token.text == 'ou' )[0]
+
+		result = []
+		self.extractor.create_relation(sujet, pattern, objet, "r_base_test", result)
+
+		expected = [
+			"acrodermatite papuleux infantile → r_base_test → syndrome Gianotti-Crosti",
+			"acrodermatite → r_base_test → syndrome Gianotti-Crosti"
+		]
+		self.assertCountEqual( list(map(str, result)), expected)
+		
 
 if __name__ == '__main__':
 	unittest.main()

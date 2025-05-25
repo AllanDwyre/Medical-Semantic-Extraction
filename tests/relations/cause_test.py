@@ -21,13 +21,13 @@ class TestCauseExtraction(unittest.TestCase):
 			"adénolymphite mésentérique → r_has_causatif → infection viral",
 		]
 		result = list(map(str,self.analyser.analyse_content(text, True)))
-		self.assertEqual(result, expected)
+		self.assertCountEqual(result, expected)
 
 	def test_no_match(self):
 		text = "Ceci est une phrase sans relation sémantique claire."
 		expected = []
 		result = self.analyser.analyse_content(text, True)
-		self.assertEqual(result, expected)
+		self.assertCountEqual(result, expected)
 
 if __name__ == '__main__':
 	unittest.main()

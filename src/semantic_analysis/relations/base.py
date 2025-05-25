@@ -1,5 +1,6 @@
 from src.semantic_analysis.document import Relation
 from src.semantic_analysis.pattern_matching import CompositeToken, BasicToken, Dependency, Token, PatternMatch, PatternCondition, PatternBuilder
+from rich import print as rprint
 
 class BaseRelationExtractor:
 	relation_name = "undefined"
@@ -27,7 +28,9 @@ class BaseRelationExtractor:
 		if isNmodOnly is None:
 			nmod_composite = self.get_composite_words(tree, isNmodOnly = True)
 			enriched_composite = self.get_composite_words(tree, isNmodOnly = False)
-
+			if nmod_composite.lemma_ == enriched_composite.lemma_:
+				return [nmod_composite]
+			
 			return [nmod_composite, enriched_composite]
 
 
@@ -51,12 +54,12 @@ class BaseRelationExtractor:
 		return text.replace('_', '-')
 		
 	def create_relation(self, sujet_dep: Dependency, pattern_dep: Dependency, objet_dep: Dependency, relation_type: str, relations: list[Relation] = []) -> Relation:
-		if not sujet_dep or not pattern_dep or not objet:
+		if not sujet_dep or not pattern_dep or not objet_dep:
 			return None
 
-		sujet_tokens	: list[CompositeToken | Token | BasicToken]	= self.get_composite_words(sujet)
-		objet_tokens 	: list[CompositeToken | Token | BasicToken]	= self.get_composite_words(objet)
-		pattern_token 	: Token | BasicToken	= pattern_dep.token
+		sujet_tokens	: list[CompositeToken | Token | BasicToken]	= self.get_composite_words(sujet_dep)
+		objet_tokens 	: list[CompositeToken | Token | BasicToken]	= self.get_composite_words(objet_dep)
+		pattern_token 	: Token | BasicToken	= self.get_pattern(pattern_dep)
 		
 		for sujet in sujet_tokens:
 			for objet in objet_tokens:

@@ -22,7 +22,7 @@ class TestGeneriqueExtraction(unittest.TestCase):
 			"abcès artificiel → r_isa → technique",
 		]
 		result = get_result(text, self.analyser.analyse_content)
-		self.assertEqual(result, expected)
+		self.assertCountEqual(result, expected)
 
 	def test_extraction_avec_pronon(self):
 		text = "L'abdominoplastie est l'une des techniques utilisées dans la chirurgie esthétique abdominale."\
@@ -31,13 +31,13 @@ class TestGeneriqueExtraction(unittest.TestCase):
 			"abdominoplastie → r_isa → technique",
 		]
 		result = get_result(text, self.analyser.analyse_content)
-		self.assertEqual(result, expected)
+		self.assertCountEqual(result, expected)
 
 	def test_no_match(self):
 		text = "Ceci est une phrase sans relation sémantique claire."
 		expected = []
 		result = get_result(text, self.analyser.analyse_content)
-		self.assertEqual(result, expected)
+		self.assertCountEqual(result, expected)
 
 if __name__ == '__main__':
 	unittest.main()

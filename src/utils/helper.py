@@ -4,9 +4,26 @@ import time
 import os
 import json
 from pathlib import Path
+from rich import print as rprint
 
 def get_result(text, analyse_callback):
-		return list(map(str, analyse_callback(text)))
+		relations = analyse_callback(text)
+
+		start_end = {}
+		for rel in relations:
+			start, end = rel.get_start_end("sujet")
+			start_end[start] = max(start_end[start], end) if start in start_end else end
+
+			start, end = rel.get_start_end("objet")
+			start_end[start] = max(start_end[start], end) if start in start_end else end
+
+		result = []
+		for rel in relations:
+				s_start, s_end = rel.get_start_end("sujet")
+				o_start, o_end = rel.get_start_end("objet")
+				if start_end[s_start] == s_end and start_end[o_start] == o_end:
+					result.append(rel)
+		return list(map(str, result))
 
 def create_directory(directory) -> None:
 	"""Crée un répertoire s'il n'existe pas."""
