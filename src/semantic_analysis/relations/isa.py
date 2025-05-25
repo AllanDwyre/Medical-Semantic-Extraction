@@ -6,11 +6,13 @@ class GenericExtractor(BaseRelationExtractor):
 	
 	rules = [
 		PatternMatch(
+			match_name= "Sujet COP NOM",
 			sujet = PatternBuilder().child_has_tag({'nsubj'}).check_pos({'NOUN'}).build(),
 			pattern = PatternBuilder().child_has_tag({'cop'}).check_lemma({"être"}).build(),
 			objet = PatternBuilder().check_pos({'NOUN'}).build(),
 		),
 		PatternMatch(
+			match_name= "Traversal pronom (permet de chosir le mot apres le pronom)",
 			sujet = PatternBuilder().child_has_tag({'nsubj'}).check_pos({'NOUN'}).build(),
 			pattern = PatternBuilder().child_has_tag({'cop'}).check_lemma({"être"}).build(),
 			objet = PatternBuilder().check_pos({'PRON'}).child_has_tag({'nmod'}).check_pos({'NOUN'}).build(),

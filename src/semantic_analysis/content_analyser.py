@@ -21,7 +21,7 @@ class ContentAnalyzer:
 		Le extractors est surtout utilisé pour les tests unitaire car il permet de récupérer uniquement les relations attendus 
 		"""
 		self.nlp = nlp_model
-		self.rejected_pos = ()
+		self.rejected_pos = ("PUNCT")
 		self.extractors: list[BaseRelationExtractor] = extractors or [GenericExtractor(), SynonymeExtractor(), CaracteristicExtractor(), HeritageExtractor(), RoleTelicExtractor(), AgainstExtractor(), ConsequenceExtractor(), CauseExtractor() ]
 
 	def normalize_hyphenated_names(self, text):
@@ -96,7 +96,7 @@ class ContentAnalyzer:
 	
 	def analyse_content(self, content: str, verbose = False) -> list[Relation]:
 		cleaned_content = self.clean_titles(content)
-		# cleaned_content = self.normalize_hyphenated_names(content)
+		cleaned_content = self.normalize_hyphenated_names(content)
 		# TODO :		[ ] faire une association r_wiki entre le titre et les mots dans les brackets, ou peut être 
 		# TODO :			récupérer la liste des mots en gras et faire une association dynamique avec dep parsing ?
 		cleaned_content = self.remove_brackets(cleaned_content)

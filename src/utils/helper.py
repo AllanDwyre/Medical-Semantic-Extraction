@@ -5,6 +5,8 @@ import os
 import json
 from pathlib import Path
 
+def get_result(text, analyse_callback):
+		return list(map(str, analyse_callback(text)))
 
 def create_directory(directory) -> None:
 	"""Crée un répertoire s'il n'existe pas."""

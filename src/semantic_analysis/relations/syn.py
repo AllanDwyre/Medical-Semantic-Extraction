@@ -25,6 +25,7 @@ def check_adjective(nodes: List[Dependency]) -> List[Dependency]:
 class SynonymeExtractor(BaseRelationExtractor):
 	relation_name = "r_syn"
 	possible_patterns = {'désigner'}
+	not_possible_lemma = {'not heure','not jour','not mois'}
 
 	adjectif_condition = PatternCondition(step_name="adjective_condition", validator=check_adjective, description="Permet de récupérer le mot exacte")
 
@@ -39,6 +40,12 @@ class SynonymeExtractor(BaseRelationExtractor):
 				match_name = "",
 				sujet = PatternBuilder().child_has_tag({'conj'}).check_pos({"not DET"}).add__custom(adjectif_condition).build(),
 				pattern = PatternBuilder().start_from("sujet").child_has_tag({'cc'}).check_lemma({"ou"}).build(),
-				objet = PatternBuilder().check_pos({"not DET"}).build(),
+				objet = PatternBuilder().check_pos({"not DET"}).check_lemma(not_possible_lemma).build(),
+			),
+			PatternMatch(
+				match_name = "",
+				sujet = PatternBuilder().child_has_tag({'conj'}).check_pos({"not DET"}).add__custom(adjectif_condition).build(),
+				pattern = PatternBuilder().start_from("sujet").child_has_tag({'cc'}).check_lemma({"ou"}).build(),
+				objet = PatternBuilder().check_pos({"not DET"}).check_lemma(not_possible_lemma).build(),
 			),
 		]

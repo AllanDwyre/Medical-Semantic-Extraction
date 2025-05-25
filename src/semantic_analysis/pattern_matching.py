@@ -304,7 +304,7 @@ class BasicToken:
 @dataclass
 class CompositeToken:
 	main_token		: Token
-	modifier_tokens	: List[Token]
+	modifier_tokens	: List[Token | CompositeToken]
 
 	_composite_word : str			= ""
 	

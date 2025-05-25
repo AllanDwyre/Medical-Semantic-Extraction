@@ -6,52 +6,76 @@ class BaseRelationExtractor:
 	relation_source = "content"
 	rules : list[PatternMatch] = []
 
-	def _get_composite_words(self, tree: Dependency) -> CompositeToken | Token | BasicToken:
-		"""Extrait les mots composés formés par un nom et ses modificateurs adjectivaux ou nominaux, récursivement"""
+	
+	def get_pattern(self, tree: Dependency):
 		if isinstance(tree, BasicToken):
 			return tree
+		return tree.token
 		
-		if ('amod' in tree.children or 'nmod' in tree.children) and not ('cop' in tree.children):
-			main_token = tree.token
-			modifier_tokens = []
 
-			for rel in ('amod', 'nmod'):
-				if rel in tree.children:
-					for child_dep in tree.children[rel]:
-						# appel récursif pour gérer les modificateurs imbriqués
-						mod_token = self._get_composite_words(child_dep)
-						modifier_tokens.append(mod_token)
+	def get_composite_words(self, tree: Dependency, isNmodOnly = None) -> CompositeToken | Token | BasicToken:
+		"""Extrait les mots composés formés par un nom et ses modificateurs adjectivaux ou nominaux.
+		"""
+		if isinstance(tree, BasicToken):
+			return [tree]
+		
+		# pas de modificateurs, on retourne juste le token simple
+		if ('nmod' not in tree.children and 'amod' not in tree.children):	
+			return [tree.token] if isNmodOnly is None else tree.token
+		
+		# Si nmmodOnly est none alors on est la racine de la récursion
+		if isNmodOnly is None:
+			nmod_composite = self.get_composite_words(tree, isNmodOnly = True)
+			enriched_composite = self.get_composite_words(tree, isNmodOnly = False)
 
-			return CompositeToken(main_token, modifier_tokens)
+			return [nmod_composite, enriched_composite]
 
-		else:
-			# pas de modificateurs, on retourne juste le token simple
-			return tree.token
-	
-	def create_relation(self, sujet: Dependency, pattern: Dependency, objet: Dependency, relation_type: str, relations: list[Relation] = []) -> Relation:
-		if not sujet or not pattern or not objet:
+
+		# Sinon on est dans une récursion
+		main_token = tree.token
+		modifiers_tokens = []
+
+		for rel, children in tree.children.items():
+			if rel == 'nmod':
+				for child in children:
+					modifiers_tokens.append(self.get_composite_words(child, isNmodOnly = isNmodOnly))
+					
+			elif rel == 'amod'and not isNmodOnly:
+				for child in children:
+					modifiers_tokens.append(self.get_composite_words(child, isNmodOnly = isNmodOnly))
+
+		return CompositeToken(main_token, modifiers_tokens)
+			
+		
+	def _get_tiret_union_back(self, text:str):
+		return text.replace('_', '-')
+		
+	def create_relation(self, sujet_dep: Dependency, pattern_dep: Dependency, objet_dep: Dependency, relation_type: str, relations: list[Relation] = []) -> Relation:
+		if not sujet_dep or not pattern_dep or not objet:
 			return None
 
-		sujet_token 	: CompositeToken | Token | BasicToken	= self._get_composite_words(sujet)
-		objet_token 	: CompositeToken | Token | BasicToken	= self._get_composite_words(objet)
-		pattern_token 	: CompositeToken | Token | BasicToken	= self._get_composite_words(pattern)
+		sujet_tokens	: list[CompositeToken | Token | BasicToken]	= self.get_composite_words(sujet)
+		objet_tokens 	: list[CompositeToken | Token | BasicToken]	= self.get_composite_words(objet)
+		pattern_token 	: Token | BasicToken	= pattern_dep.token
+		
+		for sujet in sujet_tokens:
+			for objet in objet_tokens:
+				rel = Relation(
+					sujet= self._get_tiret_union_back(sujet.lemma_),
+					objet= self._get_tiret_union_back(objet.lemma_),
+					pattern= self._get_tiret_union_back(pattern_token.lemma_),
+					relation_type=relation_type,
+					source = self.relation_source,
+				)
 
-		rel = Relation(
-			sujet=sujet_token.lemma_,
-			objet=objet_token.lemma_,
-			pattern=pattern_token.lemma_,
-			relation_type=relation_type,
-			source = self.relation_source,
-		)
+				rel.set_start_and_end(
+					sujet	= self._get_position(sujet),
+					pattern	= self._get_position(pattern_token),
+					objet	= self._get_position(objet)
+				)
 
-		rel.set_start_and_end(
-			sujet	= self._get_position(sujet_token),
-			pattern	= self._get_position(pattern_token),
-			objet	= self._get_position(objet_token)
-		)
-
-		relations.append(rel)
-		return rel
+				relations.append(rel)
+		return relations
 
 	def _get_position(self, token: CompositeToken | Token) -> tuple[int,int]:
 		if isinstance(token, (CompositeToken, BasicToken)):

@@ -7,12 +7,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 
 import unittest
 from src.semantic_analysis.content_analyser import SynonymeExtractor, ContentAnalyzer
-from src.utils.helper import load_nlp_model
+from src.utils.helper import load_nlp_model, get_result
 from rich import print
 
 
-def get_result(text, analyse_callback):
-		return list(map(str, analyse_callback(text)))
 
 class TestSynonymeExtraction(unittest.TestCase):
 	   
@@ -24,6 +22,22 @@ class TestSynonymeExtraction(unittest.TestCase):
 		expected = [
 			"abcès artificiel → r_syn → abcès Fochier",
 			"abcès fixation → r_syn → abcès Fochier"
+		]
+		result = get_result(text, self.analyser.analyse_content)
+		self.assertEqual(result, expected)
+
+	def test_synonym_extraction_rule_subj_conj_cc(self):
+		text = "L'anorexie mentale, ou anorexia nervosa, est un trouble des conduites alimentaires."
+		expected = [
+			"anorexia nervosa → r_syn → anorexie mental"
+		]
+		result = get_result(text, self.analyser.analyse_content)
+		self.assertEqual(result, expected)
+
+	def test_synonym_extraction_adjective(self):
+		text = "L’acrodermatite papuleuse infantile ou syndrome de Gianotti-Crosti est une maladie bénigne."
+		expected = [
+			"syndrome Gianotti-Crosti → r_syn → acrodermatite papuleux infantile"
 		]
 		result = get_result(text, self.analyser.analyse_content)
 		self.assertEqual(result, expected)

@@ -11,7 +11,7 @@ class RoleTelicExtractor(BaseRelationExtractor):
 	
 	rules = [
 		PatternMatch(
-			sujet = PatternBuilder().child_has_tag({'nsubj:pass'}).build(),
+			sujet = PatternBuilder().child_has_tag({'nsubj:pass'}).check_pos({'not PRON'}).build(),
 			objet = PatternBuilder().child_has_tag({'obl:mod'}).build(),
 			pattern = PatternBuilder().check_pos({'VERB', 'NOUN'}).build(),
 		),
